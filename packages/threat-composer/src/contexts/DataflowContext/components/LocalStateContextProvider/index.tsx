@@ -15,8 +15,8 @@
  ******************************************************************************************************************** */
 import { FC, PropsWithChildren, useCallback, useState } from 'react';
 import { DataflowInfo } from '../../../../customTypes';
-import { INFO_DEFAULT_VALUE } from '../../../constants';
 import { LocalStateContextProviderBaseProps } from '../../../types';
+import { DATAFLOW_INFO_DEFAULT_VALUE } from '../../constants';
 import { DataflowInfoContext } from '../../context';
 import { DataflowContextProviderProps } from '../../types';
 
@@ -25,14 +25,14 @@ DataflowContextProviderProps & LocalStateContextProviderBaseProps<DataflowInfo>>
   children,
   initialValue,
 }) => {
-  const [dataflowInfo, setDataflowInfo] = useState<DataflowInfo>(initialValue || INFO_DEFAULT_VALUE);
+  const [dataflowInfo, setDataflowInfo] = useState<DataflowInfo>(initialValue || DATAFLOW_INFO_DEFAULT_VALUE);
 
   const handleRemoveDataflowInfo = useCallback(async () => {
-    setDataflowInfo(INFO_DEFAULT_VALUE);
+    setDataflowInfo(DATAFLOW_INFO_DEFAULT_VALUE);
   }, []);
 
   const handleDeleteWorkspace = useCallback(async (_workspaceId: string) => {
-    setDataflowInfo(INFO_DEFAULT_VALUE);
+    setDataflowInfo(DATAFLOW_INFO_DEFAULT_VALUE);
   }, []);
 
   return (<DataflowInfoContext.Provider value={{

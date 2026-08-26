@@ -272,7 +272,7 @@ const BrainstormBoardInner: FC<{ onNavigateToThreat?: NavigateToThreatHandler }>
         visible={showDataflowModal}
         onDismiss={() => setShowDataflowModal(false)}
         title="Data Flow Diagram"
-        image={dataflowInfo.image}
+        image={dataflowInfo.diagrams?.[0]?.image}
       />
     </ContentLayout>
   );

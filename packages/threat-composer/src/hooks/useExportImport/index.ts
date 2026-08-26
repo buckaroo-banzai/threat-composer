@@ -29,11 +29,12 @@ import { DataExchangeFormat, TemplateThreatStatement } from '../../customTypes';
 import cleanupThreatData from '../../utils/cleanupThreatData';
 import { downloadObjectAsJson } from '../../utils/downloadContent';
 import getExportFileName from '../../utils/getExportFileName';
+import migrateDataExchange, { SUPPORTED_SCHEMA_VERSIONS } from '../../utils/migrateDataExchange';
 import recalculateThreatData from '../../utils/recalculateThreatData';
 import sanitizeHtml from '../../utils/sanitizeHtml';
 import validateData from '../../utils/validateData';
 
-const SCHEMA_VERSION = 1.0;
+const SCHEMA_VERSION = 1.1;
 
 export const PLACEHOLDER_EXCHANGE_DATA = {
   schema: SCHEMA_VERSION,
@@ -133,19 +134,20 @@ const useImportExport = () => {
       };
     }
 
-    const validatedData = validateData(parsedData);
+    if (!parsedData.schema || !SUPPORTED_SCHEMA_VERSIONS.includes(parsedData.schema)) {
+      throw new Error('Unsupported Schema version');
+    }
+
+    // Migrate legacy schema versions (e.g. 1.0 -> 1.1) before strict validation.
+    const migratedData = migrateDataExchange(parsedData);
+
+    const validatedData = validateData(migratedData);
 
     if (!validatedData.success) {
       throw new Error(validatedData.error.issues.map(i => `${i.path}: ${i.message}`).join('\n'));
     }
 
-    const importedData = validatedData.data as DataExchangeFormat;
-
-    if (!parsedData.schema || parsedData.schema !== SCHEMA_VERSION) {
-      throw new Error('Unsupported Schema version');
-    }
-
-    return importedData;
+    return validatedData.data as DataExchangeFormat;
   }, []);
 
   const importData = useCallback(async (data: DataExchangeFormat) => {

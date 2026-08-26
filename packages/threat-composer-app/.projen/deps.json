@@ -117,6 +117,11 @@
       "type": "runtime"
     },
     {
+      "name": "@juggle/resize-observer",
+      "version": "^3.4.0",
+      "type": "runtime"
+    },
+    {
       "name": "@uidotdev/usehooks",
       "type": "runtime"
     },

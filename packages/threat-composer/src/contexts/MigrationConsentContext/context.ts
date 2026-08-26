@@ -13,26 +13,29 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
-import { DataExchangeFormat } from '../../../../customTypes';
+import { useContext, createContext } from 'react';
 
-export const getDataflowContent = async (
-  data: DataExchangeFormat,
-) => {
-  const rows: string[] = [];
-  rows.push('## Dataflow');
-  if (data.dataflow?.diagrams) {
-    data.dataflow.diagrams.forEach((diagram) => {
-      rows.push(`### ${diagram.name}`);
-      if (diagram.description) {
-        rows.push(diagram.description);
-      }
-      if (diagram.image) {
-        rows.push(`![${diagram.name}](${diagram.image})`);
-      }
-    });
-  }
+export interface MigrationConsentRequest {
+  workspaceId: string | null;
+  workspaceName?: string;
+  fromSchemaVersion: number;
+  toSchemaVersion: number;
+}
 
-  rows.push('\n');
+export interface MigrationConsentContextApi {
+  pendingRequest: MigrationConsentRequest | null;
+  requestConsent: (request: MigrationConsentRequest) => Promise<boolean>;
+  confirm: () => void;
+  cancel: () => void;
+}
 
-  return rows.join('\n');
+const initialState: MigrationConsentContextApi = {
+  pendingRequest: null,
+  requestConsent: () => Promise.resolve(false),
+  confirm: () => { },
+  cancel: () => { },
 };
+
+export const MigrationConsentContext = createContext<MigrationConsentContextApi>(initialState);
+
+export const useMigrationConsentContext = () => useContext(MigrationConsentContext);

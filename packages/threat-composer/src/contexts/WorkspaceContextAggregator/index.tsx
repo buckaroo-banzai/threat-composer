@@ -14,8 +14,10 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { FC, PropsWithChildren } from 'react';
+import MigrationConsentModal from '../../components/global/MigrationConsentModal';
 import WindowExporter from '../../components/generic/WindowExporter';
 import { ComposerMode, DataExchangeFormat, ViewNavigationEvent } from '../../customTypes';
+import DataflowMigrationGate from '../../migrations/DataflowMigrationGate';
 import ApplicationInfoContextProvider from '../ApplicationContext';
 import ArchitectureInfoContextProvider from '../ArchitectureContext';
 import AssumptionLinksContextProvider from '../AssumptionLinksContext';
@@ -24,6 +26,7 @@ import BrainstormContextProvider from '../BrainstormContext';
 import CrossWorkspaceContextProvider from '../CrossWorkspaceContext';
 import DataflowInfoContextProvider from '../DataflowContext';
 import GlobalSetupContextProvider from '../GlobalSetupContext';
+import MigrationConsentContextProvider from '../MigrationConsentContext';
 import MitigationLinksContextProvider from '../MitigationLinksContext';
 import MitigationPacksContextProvider from '../MitigationPacksContext';
 import MitigationsContextProvider from '../MitigationsContext';
@@ -37,42 +40,49 @@ export interface WorkspaceContextAggregatorProps extends ViewNavigationEvent {
   onPreview?: (content: DataExchangeFormat) => void;
   onPreviewClose?: () => void;
   onImported?: () => void;
+  onMigrationCancelled?: () => void;
 }
 
 const WorkspaceContextInnerAggregator: FC<PropsWithChildren<WorkspaceContextAggregatorProps>> = ({
   children,
   workspaceId,
+  onMigrationCancelled,
 }) => {
   return (
-    <ThreatsContextProvider
-      workspaceId={workspaceId || null}
-    >
-      <MitigationsContextProvider workspaceId={workspaceId}>
-        <AssumptionsContextProvider workspaceId={workspaceId}>
-          <MitigationLinksContextProvider workspaceId={workspaceId}>
-            <AssumptionLinksContextProvider workspaceId={workspaceId}>
-              <ApplicationInfoContextProvider workspaceId={workspaceId}>
-                <ArchitectureInfoContextProvider workspaceId={workspaceId}>
-                  <DataflowInfoContextProvider workspaceId={workspaceId}>
-                    <ThreatPacksContextProvider workspaceId={workspaceId}>
-                      <MitigationPacksContextProvider workspaceId={workspaceId}>
-                        <BrainstormContextProvider workspaceId={workspaceId}>
-                          <CrossWorkspaceContextProvider>
-                            <WindowExporter>
-                              {children}
-                            </WindowExporter>
-                          </CrossWorkspaceContextProvider>
-                        </BrainstormContextProvider>
-                      </MitigationPacksContextProvider>
-                    </ThreatPacksContextProvider>
-                  </DataflowInfoContextProvider>
-                </ArchitectureInfoContextProvider>
-              </ApplicationInfoContextProvider>
-            </AssumptionLinksContextProvider>
-          </MitigationLinksContextProvider>
-        </AssumptionsContextProvider >
-      </MitigationsContextProvider>
-    </ThreatsContextProvider>
+    <MigrationConsentContextProvider>
+      <DataflowMigrationGate key={workspaceId ?? 'none'} workspaceId={workspaceId} onCancel={onMigrationCancelled}>
+        <ThreatsContextProvider
+          workspaceId={workspaceId || null}
+        >
+          <MitigationsContextProvider workspaceId={workspaceId}>
+            <AssumptionsContextProvider workspaceId={workspaceId}>
+              <MitigationLinksContextProvider workspaceId={workspaceId}>
+                <AssumptionLinksContextProvider workspaceId={workspaceId}>
+                  <ApplicationInfoContextProvider workspaceId={workspaceId}>
+                    <ArchitectureInfoContextProvider workspaceId={workspaceId}>
+                      <DataflowInfoContextProvider workspaceId={workspaceId}>
+                        <ThreatPacksContextProvider workspaceId={workspaceId}>
+                          <MitigationPacksContextProvider workspaceId={workspaceId}>
+                            <BrainstormContextProvider workspaceId={workspaceId}>
+                              <CrossWorkspaceContextProvider>
+                                <WindowExporter>
+                                  {children}
+                                </WindowExporter>
+                              </CrossWorkspaceContextProvider>
+                            </BrainstormContextProvider>
+                          </MitigationPacksContextProvider>
+                        </ThreatPacksContextProvider>
+                      </DataflowInfoContextProvider>
+                    </ArchitectureInfoContextProvider>
+                  </ApplicationInfoContextProvider>
+                </AssumptionLinksContextProvider>
+              </MitigationLinksContextProvider>
+            </AssumptionsContextProvider>
+          </MitigationsContextProvider>
+        </ThreatsContextProvider>
+      </DataflowMigrationGate>
+      <MigrationConsentModal />
+    </MigrationConsentContextProvider>
   );
 };
 

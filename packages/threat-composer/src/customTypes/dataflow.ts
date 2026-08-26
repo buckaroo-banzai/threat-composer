@@ -15,10 +15,19 @@
  ******************************************************************************************************************** */
 import { z } from 'zod';
 import { BaseImageInfoSchema } from './entities';
+import { SINGLE_FIELD_INPUT_SMALL_MAX_LENGTH } from '../configs';
+
+export const DataflowDiagramSchema = z.object({
+  id: z.string().max(36).describe('UUID v4 identifier for the data-flow diagram'),
+  name: z.string().min(1).max(SINGLE_FIELD_INPUT_SMALL_MAX_LENGTH).describe('Display name of the data-flow diagram'),
+  image: BaseImageInfoSchema.shape.image.describe('Data-flow diagram image. ' + BaseImageInfoSchema.shape.image.description),
+  description: BaseImageInfoSchema.shape.description.describe('Markdown introduction for this data-flow diagram. Start your headers from H3 maximum'),
+}).strict();
+
+export type DataflowDiagram = z.infer<typeof DataflowDiagramSchema>;
 
 export const DataflowInfoSchema = z.object({
-  description: BaseImageInfoSchema.shape.description.describe('Markdown detailed description of the application data flows. Start your headers from H3 maximum'),
-  image: BaseImageInfoSchema.shape.image.describe('Data-flow diagram image. ' + BaseImageInfoSchema.shape.image.description),
+  diagrams: DataflowDiagramSchema.array().optional().describe('Ordered collection of named data-flow diagrams; array order is display order'),
 }).strict();
 
 export type DataflowInfo = z.infer<typeof DataflowInfoSchema>;
