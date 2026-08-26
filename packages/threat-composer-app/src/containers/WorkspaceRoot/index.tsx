@@ -58,6 +58,10 @@ const WorkspaceRoot: FC = () => {
     navigate(url);
   }, [navigate, workspaceId, searchParams]);
 
+  const handleMigrationCancelled = useCallback(() => {
+    navigate(generateUrl(ROUTE_WORKSPACE_HOME, searchParams, DEFAULT_WORKSPACE_ID));
+  }, [navigate, searchParams]);
+
   return (
     <WorkspaceExamplesContext>
       <WorkspacesContext
@@ -70,6 +74,7 @@ const WorkspaceRoot: FC = () => {
             requiredGlobalSetupContext={false}
             onThreatEditorView={handleThreatEditorView}
             onThreatListView={handleThreatListView}
+            onMigrationCancelled={handleMigrationCancelled}
           >
             <AppLayout>
               <Outlet />

@@ -14,11 +14,11 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { useContext, createContext } from 'react';
-import { ArchitectureInfo } from '../../customTypes';
+import { DataflowInfo } from '../../customTypes';
 
 export interface DataflowInfoContextApi {
-  dataflowInfo: ArchitectureInfo;
-  setDataflowInfo: React.Dispatch<React.SetStateAction<ArchitectureInfo>>;
+  dataflowInfo: DataflowInfo;
+  setDataflowInfo: React.Dispatch<React.SetStateAction<DataflowInfo>>;
   removeDataflowInfo: () => Promise<void>;
   onDeleteWorkspace: (workspaceId: string) => Promise<void>;
 }

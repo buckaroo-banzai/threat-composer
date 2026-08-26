@@ -18,7 +18,7 @@ import Button from '@cloudscape-design/components/button';
 import Container from '@cloudscape-design/components/container';
 import Header from '@cloudscape-design/components/header';
 import SpaceBetween from '@cloudscape-design/components/space-between';
-import { FC, useCallback, useState, useMemo, useEffect } from 'react';
+import { forwardRef, useCallback, useState, useMemo, useEffect, useImperativeHandle, ReactNode } from 'react';
 import { BaseImageInfo, EditableComponentBaseProps } from '../../../customTypes';
 import imageStyles from '../../../styles/image';
 import ContentLayout from '../../generic/ContentLayout';
@@ -32,17 +32,23 @@ export interface BaseDiagramInfoProps extends EditableComponentBaseProps {
   diagramTitle: string;
   onConfirm: (info: BaseImageInfo) => void;
   validateData?: MarkdownEditorProps['validateData'];
+  selector?: ReactNode;
 }
 
-const BaseDiagramInfo: FC<BaseDiagramInfoProps> = ({
+export interface BaseDiagramInfoHandle {
+  confirm: () => void;
+}
+
+const BaseDiagramInfo = forwardRef<BaseDiagramInfoHandle, BaseDiagramInfoProps>(({
   headerTitle,
   diagramTitle,
   entity,
   onConfirm,
   validateData,
   onEditModeChange,
+  selector,
   MarkdownEditorComponentType = MarkdownEditor,
-}) => {
+}, ref) => {
   const [editMode, setEditMode] = useState(!entity.description && !entity.image);
   const [image, setImage] = useState<string>('');
   const [content, setContent] = useState('');
@@ -58,6 +64,9 @@ const BaseDiagramInfo: FC<BaseDiagramInfoProps> = ({
     });
     setEditMode(false);
   }, [image, content, onConfirm]);
+
+  // Lets a parent (the multi-diagram picker's "Confirm and Add") commit the current edit.
+  useImperativeHandle(ref, () => ({ confirm: handleSaveDiagramInfo }), [handleSaveDiagramInfo]);
 
   const handleEdit = useCallback(() => {
     setContent(entity.description || '');
@@ -77,28 +86,33 @@ const BaseDiagramInfo: FC<BaseDiagramInfoProps> = ({
     actions={actions}
   >
     <Container>
-      {editMode ? (<SpaceBetween direction='vertical' size='s'>
-        <MarkdownEditorComponentType
-          label='Introduction'
-          value={content}
-          onChange={setContent}
-          validateData={validateData}
-          focus={true}
-        />
-        <Header variant='h3'>{headerTitle} Diagram</Header>
-        <ImageEdit value={image} onChange={setImage} />
-      </SpaceBetween>) :
-        (<SpaceBetween direction='vertical' size='s'>
-          <Header variant='h3' key='diagramInfo'>Introduction</Header>
-          <MarkdownViewer>
-            {entity.description || ''}
-          </MarkdownViewer>
-          <Header variant='h3' key='diagram'>{diagramTitle}</Header>
-          {entity.image && <img css={imageStyles} src={entity.image} alt={diagramTitle} />}
-        </SpaceBetween>)}
+      <SpaceBetween direction='vertical' size='s'>
+        {selector}
+        {editMode ? (<SpaceBetween direction='vertical' size='s'>
+          <MarkdownEditorComponentType
+            label='Introduction'
+            value={content}
+            onChange={setContent}
+            validateData={validateData}
+            focus={true}
+          />
+          <Header variant='h3'>{headerTitle} Diagram</Header>
+          <ImageEdit value={image} onChange={setImage} />
+        </SpaceBetween>) :
+          (<SpaceBetween direction='vertical' size='s'>
+            <Header variant='h3' key='diagramInfo'>Introduction</Header>
+            <MarkdownViewer>
+              {entity.description || ''}
+            </MarkdownViewer>
+            <Header variant='h3' key='diagram'>{diagramTitle}</Header>
+            {entity.image && <img css={imageStyles} src={entity.image} alt={diagramTitle} />}
+          </SpaceBetween>)}
+      </SpaceBetween>
     </Container>
   </ContentLayout>
   );
-};
+});
+
+BaseDiagramInfo.displayName = 'BaseDiagramInfo';
 
 export default BaseDiagramInfo;

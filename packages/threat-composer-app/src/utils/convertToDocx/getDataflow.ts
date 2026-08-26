@@ -30,29 +30,24 @@ const getDataflow = async (
     ],
   }));
 
-  if (data.dataflow) {
-    if (data.dataflow.description) {
+  if (data.dataflow?.diagrams) {
+    for (const diagram of data.dataflow.diagrams) {
       children.push(new Paragraph({
         heading: HeadingLevel.HEADING_2,
         children: [
-          new TextRun('Introduction'),
+          new TextRun(diagram.name),
         ],
       }));
 
-      const sections = await convertMarkdown(data.dataflow.description);
-      children.push(...sections);
-    }
+      if (diagram.description) {
+        const sections = await convertMarkdown(diagram.description);
+        children.push(...sections);
+      }
 
-    if (data.dataflow.image) {
-      children.push(new Paragraph({
-        heading: HeadingLevel.HEADING_2,
-        children: [
-          new TextRun('Dataflow Diagram'),
-        ],
-      }));
-
-      const image = await getImage(data.dataflow.image);
-      children.push(image);
+      if (diagram.image) {
+        const image = await getImage(diagram.image);
+        children.push(image);
+      }
     }
   }
 

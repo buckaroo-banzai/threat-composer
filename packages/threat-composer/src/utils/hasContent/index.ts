@@ -37,7 +37,7 @@ export const hasArchitectureInfo = (archInfo?: ArchitectureInfo) => {
 };
 
 export const hasDataflowInfo = (dataflowInfo?: DataflowInfo) => {
-  return !!(dataflowInfo && (dataflowInfo.description || dataflowInfo.image));
+  return !!(dataflowInfo?.diagrams && dataflowInfo.diagrams.length > 0);
 };
 
 export const hasAssumptions = (assumptions?: Assumption[]) => {

@@ -25,7 +25,7 @@ import { WorkspaceSchema, Workspace } from './workspaces';
 import { EventHandler } from '../utils/EventController';
 
 export const DataExchangeFormatSchema = z.object({
-  schema: z.number().max(1).describe('Schema version identifier'),
+  schema: z.number().max(1.1).describe('Schema version identifier'),
   workspace: WorkspaceSchema.optional().meta({ internal: true }).describe('Workspace configuration and metadata. Reserved for backwards compatibility.'),
   applicationInfo: ApplicationInfoSchema.optional().describe('Information about the application being threat modeled'),
   architecture: ArchitectureInfoSchema.optional().describe('System architecture information about the application being threat modeled'),

@@ -13,26 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
-import { DataExchangeFormat } from '../../../../customTypes';
+import { DataflowInfo } from '../../customTypes';
 
-export const getDataflowContent = async (
-  data: DataExchangeFormat,
-) => {
-  const rows: string[] = [];
-  rows.push('## Dataflow');
-  if (data.dataflow?.diagrams) {
-    data.dataflow.diagrams.forEach((diagram) => {
-      rows.push(`### ${diagram.name}`);
-      if (diagram.description) {
-        rows.push(diagram.description);
-      }
-      if (diagram.image) {
-        rows.push(`![${diagram.name}](${diagram.image})`);
-      }
-    });
-  }
-
-  rows.push('\n');
-
-  return rows.join('\n');
-};
+// Dataflow uses the 1.1 diagrams shape, so it needs its own default rather than the shared single-image one.
+export const DATAFLOW_INFO_DEFAULT_VALUE: DataflowInfo = {};

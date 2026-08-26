@@ -18,7 +18,7 @@ import useLocalStorageState from 'use-local-storage-state';
 import { LOCAL_STORAGE_KEY_DATAFLOW_INFO } from '../../../../configs/localStorageKeys';
 import { DataflowInfo } from '../../../../customTypes';
 import removeLocalStorageKey from '../../../../utils/removeLocalStorageKey';
-import { INFO_DEFAULT_VALUE } from '../../../constants';
+import { DATAFLOW_INFO_DEFAULT_VALUE } from '../../constants';
 import { DataflowInfoContext, useDataflowInfoContext } from '../../context';
 import { DataflowContextProviderProps } from '../../types';
 
@@ -35,7 +35,7 @@ const DataflowLocalStorageContextProvider: FC<PropsWithChildren<DataflowContextP
   workspaceId: currentWorkspaceId,
 }) => {
   const [dataflowInfo, setDataflowInfo, { removeItem }] = useLocalStorageState<DataflowInfo>(getLocalStorageKey(currentWorkspaceId), {
-    defaultValue: INFO_DEFAULT_VALUE,
+    defaultValue: DATAFLOW_INFO_DEFAULT_VALUE,
   });
 
   const handleRemoveDataflowInfo = useCallback(async () => {
