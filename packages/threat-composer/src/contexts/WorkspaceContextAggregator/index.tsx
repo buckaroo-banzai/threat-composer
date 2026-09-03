@@ -14,8 +14,8 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { FC, PropsWithChildren } from 'react';
-import MigrationConsentModal from '../../components/global/MigrationConsentModal';
 import WindowExporter from '../../components/generic/WindowExporter';
+import MigrationConsentModal from '../../components/global/MigrationConsentModal';
 import { ComposerMode, DataExchangeFormat, ViewNavigationEvent } from '../../customTypes';
 import DataflowMigrationGate from '../../migrations/DataflowMigrationGate';
 import ApplicationInfoContextProvider from '../ApplicationContext';

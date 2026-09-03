@@ -18,15 +18,19 @@ import { FC, PropsWithChildren, useCallback, useMemo } from 'react';
 import { WorkspaceExamplesContext, useWorkspaceExamplesContext } from './context';
 import { EXAMPLES_WORKSPACE_ID_PREFIX, STORAGE_LOCAL_STATE } from '../../configs';
 import workspaceExamplesData from '../../data/workspaceExamples/workspaceExamples';
+import migrateDataExchange from '../../utils/migrateDataExchange';
 
 const WorkspaceExamplesContextProvider: FC<PropsWithChildren<{}>> = ({
   children,
 }) => {
   const workspaceExamples = useMemo(() => {
+    // Bundled examples are read-only, so upgrade them to the current schema in memory
+    // (no consent needed) at this boundary before they seed the local-state providers.
     return workspaceExamplesData.map(x => ({
       ...x,
       id: `${EXAMPLES_WORKSPACE_ID_PREFIX}${x.name.replace(/\s/g, '')}`,
       storageType: STORAGE_LOCAL_STATE,
+      value: migrateDataExchange(x.value),
     }));
   }, [workspaceExamplesData]);
 

@@ -15,9 +15,9 @@
  ******************************************************************************************************************** */
 import validateData from '.';
 import { DataExchangeFormat } from '../../customTypes';
-import migrateDataExchange from '../migrateDataExchange';
 import genAIChatbot from '../../data/workspaceExamples/GenAIChatbot.tc.json';
 import threatComposer from '../../data/workspaceExamples/ThreatComposer.tc.json';
+import migrateDataExchange from '../migrateDataExchange';
 
 // Both schema versions coexist (US-1-T1): raw 1.0 fixtures document the legacy
 // on-disk shape and are imported into 1.1 via migrateDataExchange before strict

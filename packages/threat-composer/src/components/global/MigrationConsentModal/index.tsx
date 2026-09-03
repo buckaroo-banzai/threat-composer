@@ -30,35 +30,34 @@ const MigrationConsentModal: FC = () => {
     return null;
   }
 
-  const { workspaceName, fromSchemaVersion, toSchemaVersion } = pendingRequest;
+  const { workspaceName, subject, fromSchemaVersion, toSchemaVersion } = pendingRequest;
   // TODO: (US-3-T3): revisit version display when schema versions move off floats.
-  const formatVersion = (v: number) => v.toFixed(1);
+  const formatVersion = (v: number) => `v${v.toFixed(1)}`;
+  const label = subject ?? (workspaceName ? `The workspace "${workspaceName}"` : 'This threat model');
 
   return (
     <Modal
       visible
-      header={<Header>{`Upgrade this threat model from ${formatVersion(fromSchemaVersion)} to the current ${formatVersion(toSchemaVersion)} format?`}</Header>}
+      header={<Header>{`Upgrade to the current format (${formatVersion(toSchemaVersion)})?`}</Header>}
       onDismiss={cancel}
       footer={
         <Box float="right">
           <SpaceBetween direction="horizontal" size="xs">
             <Button variant="link" onClick={cancel}>Cancel</Button>
-            <Button variant="primary" onClick={confirm}>Upgrade and open</Button>
+            <Button variant="primary" onClick={confirm}>Upgrade</Button>
           </SpaceBetween>
         </Box>
       }
     >
       <SpaceBetween size="s">
         <Box>
-          {workspaceName
-            ? `The workspace "${workspaceName}" was saved in an older Data Flow format and must be upgraded before it can be opened.`
-            : 'This workspace was saved in an older Data Flow format and must be upgraded before it can be opened.'}
+          {`${label} uses an older Data Flow format (${formatVersion(fromSchemaVersion)}) and will be upgraded to ${formatVersion(toSchemaVersion)}.`}
         </Box>
         <Box>
           Upgrading changes how the Data Flow diagram is stored. Older versions of Threat Composer may no
-          longer be able to open the upgraded model, so consider exporting a backup first.
+          longer be able to open it, so consider exporting a backup first.
         </Box>
-        <Box>Cancel to leave this workspace unchanged and unopened.</Box>
+        <Box>Cancel to leave it unchanged.</Box>
       </SpaceBetween>
     </Modal>
   );
