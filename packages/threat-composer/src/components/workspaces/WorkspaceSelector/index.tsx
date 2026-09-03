@@ -44,6 +44,7 @@ import {
 } from '../../../customTypes';
 import useCloneWorkspace from '../../../hooks/useCloneWorkspace';
 import useImportExport from '../../../hooks/useExportImport';
+import useMigrationConsentGuard from '../../../hooks/useMigrationConsentGuard';
 import useRemoveData from '../../../hooks/useRemoveData';
 import getMobileMediaQuery from '../../../utils/getMobileMediaQuery';
 import isWorkspaceExample from '../../../utils/isWorkspaceExample';
@@ -108,6 +109,7 @@ const WorkspaceSelector: FC<PropsWithChildren<WorkspaceSelectorProps>> = ({
   const { importData, exportAll, exportSelectedThreats, getWorkspaceData } =
     useImportExport();
   const { removeData, deleteWorkspace } = useRemoveData();
+  const ensureMigrationConsent = useMigrationConsentGuard();
 
   const {
     appMode,
@@ -169,8 +171,12 @@ const WorkspaceSelector: FC<PropsWithChildren<WorkspaceSelectorProps>> = ({
       [switchWorkspace],
     );
 
-  const handleSingletonPrimaryButtonClick = useCallback(() => {
+  const handleSingletonPrimaryButtonClick = useCallback(async () => {
     if (singletonPrimaryActionButtonConfig) {
+      // Saving persists the current-schema document, so confirm migration consent first.
+      if (!(await ensureMigrationConsent())) {
+        return;
+      }
       const data = getWorkspaceData();
       singletonPrimaryActionButtonConfig.onClick?.(data);
       singletonPrimaryActionButtonConfig.eventName &&
@@ -182,7 +188,7 @@ const WorkspaceSelector: FC<PropsWithChildren<WorkspaceSelectorProps>> = ({
     } else {
       exportAll();
     }
-  }, [singletonPrimaryActionButtonConfig, getWorkspaceData, exportAll]);
+  }, [singletonPrimaryActionButtonConfig, getWorkspaceData, exportAll, ensureMigrationConsent]);
 
   const handleMoreActions: CancelableEventHandler<ButtonDropdownProps.ItemClickDetails> =
     useCallback(

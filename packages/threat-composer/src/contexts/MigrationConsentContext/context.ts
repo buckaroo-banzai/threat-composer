@@ -14,24 +14,30 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { useContext, createContext } from 'react';
+import { DataExchangeFormat } from '../../customTypes';
 
 export interface MigrationConsentRequest {
   workspaceId: string | null;
   workspaceName?: string;
+  subject?: string;
   fromSchemaVersion: number;
   toSchemaVersion: number;
 }
 
 export interface MigrationConsentContextApi {
   pendingRequest: MigrationConsentRequest | null;
+  pendingMigration: DataExchangeFormat | null;
   requestConsent: (request: MigrationConsentRequest) => Promise<boolean>;
+  setPendingMigration: (document: DataExchangeFormat | null) => void;
   confirm: () => void;
   cancel: () => void;
 }
 
 const initialState: MigrationConsentContextApi = {
   pendingRequest: null,
+  pendingMigration: null,
   requestConsent: () => Promise.resolve(false),
+  setPendingMigration: () => { },
   confirm: () => { },
   cancel: () => { },
 };

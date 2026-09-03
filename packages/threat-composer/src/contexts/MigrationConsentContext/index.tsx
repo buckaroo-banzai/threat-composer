@@ -15,9 +15,11 @@
  ******************************************************************************************************************** */
 import { FC, PropsWithChildren, useCallback, useRef, useState } from 'react';
 import { MigrationConsentContext, MigrationConsentRequest, useMigrationConsentContext } from './context';
+import { DataExchangeFormat } from '../../customTypes';
 
 const MigrationConsentContextProvider: FC<PropsWithChildren> = ({ children }) => {
   const [pendingRequest, setPendingRequest] = useState<MigrationConsentRequest | null>(null);
+  const [pendingMigration, setPendingMigration] = useState<DataExchangeFormat | null>(null);
   const resolverRef = useRef<((proceed: boolean) => void) | null>(null);
 
   const requestConsent = useCallback((request: MigrationConsentRequest) => {
@@ -38,7 +40,9 @@ const MigrationConsentContextProvider: FC<PropsWithChildren> = ({ children }) =>
 
   return (<MigrationConsentContext.Provider value={{
     pendingRequest,
+    pendingMigration,
     requestConsent,
+    setPendingMigration,
     confirm,
     cancel,
   }}>

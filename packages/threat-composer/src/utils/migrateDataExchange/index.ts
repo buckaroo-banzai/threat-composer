@@ -97,6 +97,14 @@ export const SUPPORTED_SCHEMA_VERSIONS = [
   CURRENT_SCHEMA_VERSION,
 ];
 
+// True when an ingested document is a supported, below-current schema that must be upgraded.
+// Ingestion paths that could persist the result (e.g. IDE injection) gate consent on this
+// before migrating; already-current or unsupported inputs return false.
+export const dataExchangeNeedsMigration = (input: { schema?: number }): boolean =>
+  typeof input?.schema === 'number' &&
+  SUPPORTED_SCHEMA_VERSIONS.includes(input.schema) &&
+  input.schema < CURRENT_SCHEMA_VERSION;
+
 // Shared entry point for every path that ingests a stored/imported model
 // (persistence-load, file-import, IDE injection): walk any supported version up to
 // current via single steps. Validation is a separate concern applied by the caller.

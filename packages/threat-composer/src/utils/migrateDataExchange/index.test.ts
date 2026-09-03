@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
-import migrateDataExchange, { DEFAULT_DATAFLOW_DIAGRAM_NAME, dataflowInfoNeedsMigration, migrateDataflowInfo, migrateToCurrent } from '.';
+import migrateDataExchange, { DEFAULT_DATAFLOW_DIAGRAM_NAME, dataExchangeNeedsMigration, dataflowInfoNeedsMigration, migrateDataflowInfo, migrateToCurrent } from '.';
 import { DataExchangeFormat, DataflowInfo } from '../../customTypes';
 import threatComposer from '../../data/workspaceExamples/ThreatComposer.tc.json';
 import validateData from '../validateData';
@@ -207,5 +207,27 @@ describe('dataflowInfoNeedsMigration - legacy 1.0 detection (US-1-T2)', () => {
 
   test('does not flag an undefined dataflow', () => {
     expect(dataflowInfoNeedsMigration(undefined)).toBe(false);
+  });
+});
+
+describe('dataExchangeNeedsMigration - ingestion consent gate (US-1-T7)', () => {
+  test('flags a supported below-current schema (1.0)', () => {
+    expect(dataExchangeNeedsMigration({ schema: 1.0 })).toBe(true);
+  });
+
+  test('does not flag an already-current schema (1.1)', () => {
+    expect(dataExchangeNeedsMigration({ schema: 1.1 })).toBe(false);
+  });
+
+  test('does not flag an unsupported schema', () => {
+    expect(dataExchangeNeedsMigration({ schema: 2.0 })).toBe(false);
+  });
+
+  test('does not flag the pre-schema list-only sentinel (-1)', () => {
+    expect(dataExchangeNeedsMigration({ schema: -1 })).toBe(false);
+  });
+
+  test('does not flag input without a numeric schema', () => {
+    expect(dataExchangeNeedsMigration({})).toBe(false);
   });
 });
