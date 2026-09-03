@@ -19,7 +19,7 @@ Statuses apply to both user stories and their development tasks. A user story is
 
 ### US-1 — Multiple named data-flow diagrams in the Data Flow section
 
-**Status:** 'In Development'
+**Status:** 'Completed' (2026-09-02: all tasks US-1-T1 through US-1-T8 are Completed; acceptance criteria verified via unit tests plus manual in-browser, IDE, and Word-export checks. Documented deviations remain recorded below.)
 
 **Story:** As a Threat Composer user, I can maintain multiple named data-flow diagrams in the Data Flow section — view, add, rename, reorder, replace, and delete — with my diagrams persisted locally, while my existing single-image workspaces keep working unchanged.
 
