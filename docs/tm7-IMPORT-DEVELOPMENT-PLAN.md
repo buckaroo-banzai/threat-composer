@@ -172,7 +172,7 @@ The initial release will:
 - Import every TMT threat and its disposition.
 - Optionally extract one supporting document into each existing TC description section: Application, Architecture, and Data Flow.
 - In multi-workspace mode, create and populate a new workspace without modifying the active workspace if migration fails.
-- In singleton modes, replace the singleton model only after an explicit overwrite warning and successful Preview validation.
+- In singleton modes, replace the singleton model only after an explicit overwrite warning and successful validation.
 - Continue to store workspace data in browser 'localStorage'.
 
 ## Out of Scope for the Initial Release
@@ -197,7 +197,7 @@ The initial release will:
 ### Threat Composer
 
 - TC currently imports '.tc.json' through the existing file-import modal.
-- Imported data is sanitized, validated against the exchange schema, previewed, and distributed to workspace contexts.
+- Imported data is sanitized, validated against the exchange schema, and distributed to workspace contexts.
 - The current exchange format is schema '1.0'.
 - Data Flow currently contains one Markdown description and one image.
 - Application and Architecture each contain one Markdown description; Architecture also contains one image.
@@ -242,7 +242,7 @@ The initial release will:
 - Default the workspace name to TMT 'ThreatModelName'.
 - Fall back to the '.tm7' filename without its extension when 'ThreatModelName' is empty.
 - Use the same default for the TC Application name.
-- Allow the user to edit the workspace and Application names independently in Preview.
+- Allow the user to rename the workspace and Application independently after import using the normal TC controls.
 - Make Microsoft TMT import available consistently in standard multi-workspace mode and singleton modes, including the browser and IDE extension hosts.
 - In standard multi-workspace mode, Microsoft TMT import creates a new workspace and never replaces the active workspace.
 - In singleton modes, Microsoft TMT import replaces the current singleton model after warning the user explicitly that its existing content will be overwritten.
@@ -255,12 +255,12 @@ The initial release will:
   - Application
   - Architecture
   - Data Flow
-- Extracted content is converted to Markdown and is editable in Preview before import.
-- Prefix extracted content in every destination with '#### Imported from <filename>', preserving the original filename. The heading remains editable with the extracted content in Preview.
+- Extracted content is converted to Markdown and is editable after import in the normal description editors.
+- Prefix extracted content in every destination with '#### Imported from <filename>', preserving the original filename. The heading remains editable with the extracted content after import.
 - Documents are never silently truncated.
 - A selected document that cannot be extracted blocks import until the user removes or replaces it.
 - '.docx' extraction preserves semantic headings, paragraphs, lists, tables, links, and image alt text where available.
-- Embedded '.docx' images are omitted and reported as Preview warnings.
+- Embedded '.docx' images are omitted and reported as import warnings.
 - '.txt' is converted to escaped Markdown paragraphs.
 - '.md' remains Markdown after validation and sanitization.
 
@@ -297,7 +297,7 @@ The first DFD is selected by default. The Data Flow section retains one shared M
 - Generate a new TC UUID v4 for each imported threat.
 - Preserve the unique TMT integer threat ID as TC 'numericId'.
 - Also retain the source number as 'custom:TMT Threat ID' for explicit traceability.
-- If TMT IDs are missing or duplicated, allocate unused TC numeric IDs and show a Preview warning.
+- If TMT IDs are missing or duplicated, allocate unused TC numeric IDs and show an import warning.
 - Missing identity or statement content, or any other threat conversion failure, blocks import. Threats are never silently skipped.
 - Missing optional threat metadata produces a warning rather than blocking import.
 
@@ -319,7 +319,7 @@ The original TMT state is also preserved as custom metadata.
 - TMT priority maps to TC 'Priority' metadata.
 - Always preserve the original TMT threat category as 'custom:TMT Category'.
 - Map a TMT category to TC 'STRIDE' metadata only when the embedded category resolves unambiguously to 'S', 'T', 'R', 'I', 'D', or 'E'.
-- Leave TC 'STRIDE' unset and show a Preview warning for custom or ambiguous categories.
+- Leave TC 'STRIDE' unset and show an import warning for custom or ambiguous categories.
 - Preserve TMT-specific values as separate existing custom metadata entries:
   - 'custom:TMT Threat ID'
   - 'custom:TMT Description'
@@ -407,7 +407,7 @@ Code-grounded implementation notes (verified against TC source):
 
 ### Browser-Only Processing
 
-All parsing, conversion, document extraction, rendering, preview, and persistence occur in the browser. No service or external .NET converter is required, and source content is not uploaded.
+All parsing, conversion, document extraction, rendering, and persistence occur in the browser. No service or external .NET converter is required, and source content is not uploaded.
 
 ### '.tm7' Parsing
 
@@ -448,9 +448,9 @@ Use this pipeline:
 ### Image and Storage Limits
 
 - Retain TC's existing maximum of 1,000,000 characters per image.
-- An oversized crisp PNG is an error; the user may exclude that DFD or cancel.
+- An oversized crisp PNG is a blocking error that stops the import; the user reduces the source model in TMT and retries, or cancels.
 - Retain 'localStorage'; do not move workspaces to IndexedDB in this project.
-- Show the exact estimated incremental serialized size during Preview.
+- Show the exact estimated incremental serialized size at import time.
 - Do not claim that the migration will fit before writing. Browsers do not expose an authoritative remaining 'localStorage' capacity; 'navigator.storage.estimate()' covers broader origin storage and is not a reliable 'localStorage' preflight.
 - Actual writes remain authoritative because browser quotas vary.
 
@@ -468,11 +468,11 @@ Add a staged workspace-import operation:
 6. On any failure, remove all keys written by the attempt and leave the active workspace unchanged.
 7. Detect and report 'QuotaExceededError' explicitly.
 
-If capacity is insufficient, keep Preview open and allow the user to exclude less important DFDs and retry or cancel the migration.
+If capacity is insufficient, block the import with an explicit error and leave the active workspace unchanged; the user reduces the source model in TMT and retries, or cancels.
 
 Extract the per-workspace key serialization behind a small storage utility so staged import and existing context storage use the same key and value conventions.
 
-Singleton modes use the same parser, Preview, validation, and conversion pipeline, but confirmation replaces the singleton model rather than creating a workspace. The exact rollback mechanism for singleton replacement remains a separate design decision.
+Singleton modes use the same parser, validation, and conversion pipeline, but import replaces the singleton model rather than creating a workspace. The exact rollback mechanism for singleton replacement remains a separate design decision.
 
 ### Supporting-Document Extraction
 
@@ -492,7 +492,7 @@ For '.docx':
 - Sanitize the generated HTML before further processing.
 - Convert sanitized HTML with 'turndown' and its GFM plugin.
 - Omit embedded images while retaining alt text where available and emit warnings.
-- Treat Mammoth errors as extraction failures and surface its warnings in Preview.
+- Treat Mammoth errors as extraction failures and surface its warnings as import warnings.
 
 Add runtime dependencies through 'projenrc/ui-components.ts', then synthesize generated project files with Projen.
 
@@ -555,10 +555,10 @@ This is separate from Microsoft TMT's HTML report, which is used only as a visua
 - Unexpected root element or namespace.
 - Missing or unsupported TMT version.
 - Missing required model structures.
-- Any selected DFD that cannot be rendered.
-- Any selected DFD that exceeds the per-image limit.
+- Any non-empty DFD that cannot be rendered.
+- Any DFD that exceeds the per-image limit.
 - Any threat that cannot be converted without losing identity or statement content.
-- Any selected supporting document that cannot be extracted.
+- Any assigned supporting document that cannot be extracted.
 - Any schema '1.1' validation failure.
 - Any workspace persistence failure, including 'QuotaExceededError'.
 
@@ -569,8 +569,8 @@ This is separate from Microsoft TMT's HTML report, which is used only as a visua
 - Custom or ambiguous TMT categories that could not be mapped to TC STRIDE metadata.
 - Omitted embedded images in a Word document.
 - Document-conversion warnings that do not prevent usable Markdown output.
-- Explicitly excluded DFDs.
-- Imported threats whose DFD was explicitly excluded.
+- Empty drawing surfaces that were not imported as diagrams.
+- Imported threats whose source drawing surface was empty and produced no diagram.
 - TMT content with no direct TC equivalent that was preserved in custom metadata or the TMT information block.
 
 No in-scope source content is silently omitted, truncated, inferred, or reclassified. TMT-specific model-validation results are an explicit product-level exclusion and are not imported.
@@ -604,7 +604,7 @@ No in-scope source content is silently omitted, truncated, inferred, or reclassi
 - Parse drawing surfaces, elements, connectors, boundaries, annotations, and required knowledge-base lookups.
 - Build namespace-safe SVG rendering.
 - Rasterize at 2x and crop unused whitespace.
-- Enforce selected-diagram and per-image validation.
+- Enforce per-diagram and per-image validation.
 - Add structural renderer tests and browser PNG smoke checks.
 - Perform human side-by-side review against TMT-generated reference PNGs.
 
@@ -617,24 +617,23 @@ No in-scope source content is silently omitted, truncated, inferred, or reclassi
 - Add the tentative custom metadata report section.
 - Add mapping, missing-field, duplicate-ID, and failure-policy tests.
 
-### Phase 4: Supporting Documents and Migration Preview
+### Phase 4: Supporting Documents and Import Action
 
 - Add the '.docx', '.txt', and '.md' extractor contract and implementations.
 - Add dependencies through Projen configuration.
 - Extend the existing import UI with **Import Microsoft TMT Model**.
-- Keep file selection and editable tabbed Preview in the existing modal, expanding it to maximum size for Preview.
+- Keep file selection in the existing import modal.
 - Add optional one-document assignment for Application, Architecture, and Data Flow.
-- Add editable names and descriptions to Preview.
-- Add DFD selection, image sizes, threat counts, summaries, warnings, and errors.
-- Validate that cancellation does not change workspace state.
+- Surface blocking errors and non-blocking warnings at import time.
+- Validate that a failed or cancelled import does not change workspace state.
 
 ### Phase 5: Transactional Persistence and Integration
 
 - Add shared per-workspace serialization utilities.
 - Add staged workspace writing and rollback.
 - Add storage preflight and 'QuotaExceededError' handling.
-- Keep Preview open after capacity failure and support retry after DFD exclusion.
-- Run focused tests after each slice, then the full TC build and test suite.
+- On capacity failure, roll back cleanly and report an explicit error.
+- Run focused tests after each task, then the full TC build and test suite.
 - Complete human acceptance review on representative models and document results.
 
 ## Test Strategy
