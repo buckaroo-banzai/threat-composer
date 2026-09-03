@@ -53,7 +53,9 @@ const fetchImage = async (
         });
       };
       image.onerror = reject;
-      image.src = URL.createObjectURL(new Blob([buf]));
+      // Type the Blob so the Image can decode SVG payloads; without it the browser only sniffs
+      // raster formats and SVGs fail to load, falling back to the "Image Unavailable" placeholder.
+      image.src = URL.createObjectURL(new Blob([buf], { type: contentType }));
     });
   } catch (e) {
     console.log('Failed to fetch image and returns placeholder image', e);
