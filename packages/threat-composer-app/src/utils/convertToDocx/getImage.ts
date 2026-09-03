@@ -17,6 +17,17 @@ import { ExternalHyperlink, IImageOptions, ImageRun, Paragraph } from 'docx';
 import { FALLBACK_IMAGE } from './fallbackImage';
 import fetchImage from './fetchImage';
 
+// This runs in the browser, where Node's Buffer is unavailable; decode the base64 data URL to
+// bytes with atob so docx can embed the PNG fallback.
+const decodeDataUrl = (dataUrl: string): Uint8Array => {
+  const binary = atob(dataUrl.slice(dataUrl.indexOf(',') + 1));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+};
+
 export const getImageRun = (image: IImageOptions['data'], type: IImageOptions['type'], width: number, height: number) => {
   if (type !== 'svg') {
     return new ImageRun({
@@ -38,7 +49,7 @@ export const getImageRun = (image: IImageOptions['data'], type: IImageOptions['t
     type: 'svg',
     fallback: {
       type: 'png',
-      data: Buffer.from(FALLBACK_IMAGE, 'base64'),
+      data: decodeDataUrl(FALLBACK_IMAGE),
     },
   });
 };
