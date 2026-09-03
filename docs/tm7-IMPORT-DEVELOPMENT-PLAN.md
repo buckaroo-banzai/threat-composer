@@ -17,7 +17,7 @@ This section is the living execution board for the feature. It refines the Deliv
 
 Statuses apply to both user stories and their development tasks. A user story is 'In Development' when at least one of its tasks is 'In Development', and 'Completed' only when every task is 'Completed' and its acceptance criteria pass.
 
-### US-1 — Multiple named data-flow diagrams in the Data Flow section
+### US-1 — A user maintains multiple named data-flow diagrams in the Data Flow section
 
 **Status:** 'Completed' (2026-09-02: all tasks US-1-T1 through US-1-T8 are Completed; acceptance criteria verified via unit tests plus manual in-browser, IDE, and Word-export checks. Documented deviations remain recorded below.)
 
@@ -47,7 +47,7 @@ Statuses apply to both user stories and their development tasks. A user story is
 | US-1-T1 | Data layer: add a Data-Flow-specific 'diagrams' model and 'DiagramSchema'; bump 'SCHEMA_VERSION' to '1.1' across all three enforcement points (Zod 'z.number().max(...)', JSON schema 'maximum', and the import version check); replace the hard '!== SCHEMA_VERSION' equality with an accept-list for '1.0' and '1.1'; add a '1.0' → '1.1' migrator that moves 'image' into 'diagrams[0]' and strips the legacy key; unit tests. | 'Completed' |
 | US-1-T2 | Consent-gated persistence and on-load migration in both 'DataflowContext' providers (singleton local-state and multi-workspace localStorage). Detect a schema 1.0 dataflow shape — a stored dataflow that still carries the removed 'image' key and has no 'diagrams' (the per-workspace localStorage blobs do not record a schema number, so this shape is the only signal of schema 1.0) — and require explicit user consent before altering anything: no silent migration. Detection and the consent gate live at workspace-open orchestration (before the per-workspace contexts mount), so a cancelled model stays fully unloaded (1.1 UI never runs on 1.0 data); a modal drives the UX and the providers persist the migrated value on Proceed. Proceed: migrate 'image' into 'diagrams[0]' and persist as 1.1. Cancel: leave the stored model unaltered and unloaded. The same consent must also guard the IDE injection path (window.threatcomposer.setCurrentWorkspaceData -> parseImportedData): detect schema 1.0 and prompt before applying/migrating, using one shared consent mechanism for both entry points; on cancel, do not load the model (in-memory migration without explicit consent is unsafe because the user could Save the upgraded file by accident). Explicit file-import (the import modal) is NOT gated: it creates a new workspace and never alters a source file, so it migrates as today. Offer a backup export before proceeding. Tests: pure migration fn + provider/injection render tests. Implementation constraint (leave-it-better): route the '1.0' → '1.1' migrator through the shared single-step migration entry point described in 'Schema Migration Architecture (Target State)' and US-3, rather than invoking it ad hoc; keep structural detection only as the transitional 'absent-marker ⇒ 1.0' fallback. The original system never accounted for schema evolution; this migration must not perpetuate that oversight by adding disposable one-off checks — it should leave future migrations simpler. | 'Completed' (2026-08-27: localStorage provider gated via 'DataflowMigrationGate'; the singleton local-state/examples path now auto-migrates in-memory at the 'WorkspaceExamplesContext' boundary via the shared 'migrateDataExchange' — no consent needed since examples are read-only; verified in-browser that a schema-1.0 example's Data Flow diagram renders again. The IDE-injection consent gate is tracked separately as US-1-T7.) |
 | US-1-T3 | Multi-DFD UI built additively on the Data Flow section (named selection, add/rename/reorder/replace/delete, keyboard-accessible reorder) without regressing the shared Architecture single-image component; tests. | 'Completed' (2026-08-27: Select picker + Add / 'Confirm and Add' + Rename + Delete + keyboard-accessible Move up/down; verified in-browser; shared 'BaseDiagramInfo' gained a forwardRef 'confirm()' handle with Architecture unaffected). |
-| US-1-T4 | Export continuity shim: report and Markdown/Word/PDF export read 'diagrams[0].image' so single-diagram exports keep working before US-2. | 'Completed' (superseded — instead of a first-diagram shim, the Markdown and Word/docx exporters and the on-screen report now render ALL diagrams; see US-2). |
+| US-1-T4 | Export continuity shim: report and Markdown/Word/PDF export read 'diagrams[0].image' so single-diagram exports keep working before US-2. | 'Completed' (2026-08-27: instead of a first-diagram shim, the Markdown and Word/docx exporters and the on-screen report render ALL diagrams; see US-2). |
 | US-1-T5 | Set up a Jest project for 'threat-composer-app' via its projen config so the Word/docx export path (in 'threat-composer-app', touched by US-1-T4) can be unit-tested. Currently 'threat-composer-app' has a 'test' script but no Jest dependency or config. Prerequisite for testing US-1-T4. | 'Completed' (2026-09-02: the plan's premise was stale — a harness already exists: 'threat-composer-app' tests via CRA (Create React App) 'react-scripts'/'craco test' with '@testing-library/*' and 'setupTests.ts'. Added 'convertToDocx/getDataflow.test.ts' (6 tests) covering multi-diagram ordering plus the no-description / no-image / empty-diagrams / no-dataflow edge cases. No config change was needed: the anticipated ESM 'transformIgnorePatterns' tweak proved unnecessary because 'getDataflow's helpers that pull ESM deps ('convertMarkdown' -> unified/remark) and 'docx' are mocked. Gotcha recorded: CRA enables Jest 'resetMocks', so the test mocks use plain functions (not 'jest.fn') to survive the per-test reset. Visual/appearance check is US-1-T8.) |
 | US-1-T6 | Manual verification of the IDE (VS Code / AWS Toolkit) flow, since the extension host is external to this repo (aws/aws-toolkit-vscode): open a schema 1.0 '.tc.json', confirm it renders via in-memory migration, confirm the consent prompt appears before migrating, and confirm an explicit Save writes schema 1.1. Scheduled: 2026-08-19 (maintainer to run). | 'Completed' (2026-09-02: maintainer manually verified the real IDE flow — a schema 1.0 '.tc.json' renders via in-memory migration, the consent prompt appears before the upgrade is persisted, and Save writes schema 1.1 only after Proceed.) |
 | US-1-T7 | Consent-gate the IDE-injection path ('window.threatcomposer.setCurrentWorkspaceData' → 'setWorkspaceData' → 'parseImportedData' → 'importData'), which currently migrates schema 1.0 → 1.1 and applies with no prompt. Detect a pre-migration schema below current on the parsed-but-unmigrated payload, request consent via the shared 'MigrationConsentContext' ('WindowExporter' sits inside that provider), migrate + apply only on Proceed, and do not load on Cancel (silent in-memory migration is unsafe because the user could Save the upgraded model). Split out of US-1-T2; its manual end-to-end verification is US-1-T6. | 'Completed' (2026-09-02: implemented in 'WindowExporter'. Deviation from the task's "do not load on Cancel": the injected below-current model IS migrated in memory so the UI renders it, but its ORIGINAL form is stashed in 'MigrationConsentContext.pendingMigration' and 'getCurrentWorkspaceData' returns that original until consent — so a host autosave/Save round-trips the unmodified 1.0 file. Proceed clears the stash and dispatches a 'save' with the 1.1 form; Cancel leaves the original untouched. A parallel guard ('useMigrationConsentGuard') also gates the singleton Save button in 'WorkspaceSelector'. Automated coverage: the pure 'dataExchangeNeedsMigration' detector (unit-tested); the prompt/Proceed/Cancel UI flow is verified manually (US-1-T6). Per maintainer decision, no component render test was added — reshaping working code solely for unit-testability was judged cruft when the UI must be confirmed by running it.) |
@@ -55,12 +55,12 @@ Statuses apply to both user stories and their development tasks. A user story is
 
 **Implementation deviations from this plan (as of 2026-08-27, verified against code):**
 
-- **Per-diagram introductions replaced the shared description (Option A).** 'DataflowInfo' is now '{ diagrams? }' with no top-level 'dataflow.description'; each 'DataflowDiagram' is '{ id, name, image?, description? }'. This supersedes the acceptance/schema statements that keep a single shared 'dataflow.description' above the collection — exporters and the report render each diagram's own name and introduction.
+- **Per-diagram introductions replaced the shared description (Option A).** 'DataflowInfo' is now '{ diagrams? }' with no top-level 'dataflow.description'; each 'DataflowDiagram' is '{ id, name, image?, description? }'. Exporters and the report render each diagram's own name and introduction; there is no single shared 'dataflow.description' above the collection.
 - **Custom diagram names + rename** were added; auto-renumbering of default names was intentionally dropped (gaps after delete are acceptable).
 - **US-1-T2 on-load migration is complete; IDE injection split to US-1-T7 (verified against code):** the consent gate/modal covers the multi-workspace localStorage provider, and the singleton local-state/examples path now auto-migrates in-memory at the 'WorkspaceExamplesContext' boundary (read-only, no consent). This fixed a shipped regression where schema-1.0 bundled examples ('ThreatComposer.tc.json', 'GenAIChatbot.tc.json') rendered an empty Data Flow diagram under the new '.diagrams' UI. Now closed: the IDE-injection path is consent-gated (US-1-T7 complete) — 'WindowExporter' stashes the original and prompts before persisting an upgrade.
 - **Dev-tooling fix (not in the original plan):** aliased '@juggle/resize-observer' to a requestAnimationFrame-deferred wrapper (craco) to stop Cloudscape's benign 'ResizeObserver loop completed with undelivered notifications' error in the CRA dev overlay.
 
-### US-2 — Multi-diagram reports and exports
+### US-2 — A user generates reports and exports that include every data-flow diagram
 
 **Status:** 'In Development' (2026-08-27: Markdown export, Word/docx export, and the on-screen report — which renders via 'convertToMarkdown' — already emit every diagram, each under its name with its own introduction. PDF/print derives from the on-screen report, so it follows but was not separately verified. Remaining: break out formal tasks and verify PDF/print.)
 
@@ -72,7 +72,7 @@ Statuses apply to both user stories and their development tasks. A user story is
 
 **TMT-import story testing gate (maintainer requirement):** Before the TMT-import story (the '.tm7' importer) is marked complete, add unit tests that exercise '.tm7' parsing/DFD rendering and 1.0 -> 1.1 migration against **actual '.tm7' sample DFD fixtures**, not synthetic data. This gate belongs to the import story, not the schema story (US-1).
 
-### US-3 — Reliable versioned schema-migration foundation
+### US-3 — A maintainer evolves the data schema with small, single-step migrations
 
 **Status:** 'In Development'
 
@@ -101,6 +101,51 @@ Statuses apply to both user stories and their development tasks. A user story is
 | US-3-T3 | Adopt monotonic-integer (or semver) versioning; keep a compatibility mapping for the existing '1.0'/'1.1' exchange-format values so older files still import. | 'Backlog' |
 | US-3-T4 | Golden per-version fixtures plus a coverage test asserting every declared version migrates cleanly to current. | 'Backlog' |
 | US-3-T5 | (Larger, sequence last) Collapse per-slice 'localStorage' persistence into a single versioned workspace document/manifest so migrations are atomic. | 'Backlog' |
+
+### US-4 — A user imports a Microsoft TMT '.tm7' model into Threat Composer
+
+**Status:** 'Backlog'
+
+**Story:** As a Threat Composer user, I can import a Microsoft TMT '.tm7' file and get a new Threat Composer workspace containing every data-flow diagram (faithfully rendered) and every threat (correctly mapped), which I then review and edit with the normal TC tools before saving.
+
+**Business value:** Delivers the headline capability of the feature — moving an existing TMT threat model into TC — reusing US-1's multi-DFD model and US-2's multi-diagram reports/exports.
+
+**Boundary:**
+
+- In scope: file-format validation and namespace-aware '.tm7' v4.3 parsing; DFD rendering (typed model -> SVG -> cropped PNG); threat conversion with status/priority/category (STRIDE) mapping and all fixed plus arbitrary 'custom:TMT *' metadata; the 'custom:*' threat-card and report UI; the 'Microsoft TMT Model Information' block on the Application description; transactional new-workspace creation (multi-workspace) or singleton replace-with-warning; real sanitized '.tm7' fixtures.
+- No bespoke preview: the import creates the workspace and the user reviews and edits it in the normal TC views (rename/delete diagrams via US-1, edit descriptions and threats) before saving. There is no separate tabbed-Preview modal or migration draft.
+- Out of scope: supporting-document extraction (US-5); anything listed under 'Out of Scope for the Initial Release'.
+
+**Acceptance criteria:**
+
+- A valid '.tm7' v4.3 model imports with every data-flow diagram faithfully rendered and every threat mapped with no data loss and no incorrect mapping (statement, status, priority, category/STRIDE, and all detail preserved as 'custom:TMT *'); nothing is silently dropped, truncated, inferred, or reclassified.
+- Invalid input (malformed or DOCTYPE XML, wrong root/namespace, unsupported version, missing required structures, an oversized image, or a threat missing identity/statement) fails with an explicit error and imports nothing.
+- A failed, oversized, or cancelled import never modifies or corrupts any existing workspace; a singleton/IDE model is replaced only after an explicit warning with a backup-export offer.
+- After import the user adjusts the model with existing TC tools and saves it as a normal schema-'1.1' workspace.
+- Automated tests exercise parsing/rendering/threat-mapping against real sanitized '.tm7' v4.3 fixtures (the maintainer test gate), plus mapping and edge-case unit tests; human side-by-side DFD fidelity review against TMT-generated reference images.
+
+**Development tasks:** to be broken out when US-4 is started. Prerequisite: maintainer provides real sanitized '.tm7' v4.3 sample files.
+
+### US-5 — A user brings a supporting document into a description section during import
+
+**Status:** 'Backlog'
+
+**Story:** As a Threat Composer user, I can attach one Word ('.docx'), text ('.txt'), or Markdown ('.md') document to the Application, Architecture, or Data Flow section when importing a '.tm7', and see its content imported as editable Markdown.
+
+**Business value:** Lets a reviewer carry supporting narrative context into the imported model without retyping it.
+
+**Boundary:**
+
+- In scope: the '.docx'/'.txt'/'.md' extractor contract; Mammoth-in-a-Web-Worker for '.docx' (sanitize -> Turndown/GFM -> Markdown); one optional document per section, assigned in the import modal's file-selection step; the '#### Imported from <filename>' heading convention; extraction warnings and failures surfaced at import time.
+- Out of scope: more than one document per section; embedded-image extraction; '.pdf'/'.xlsx' (see 'Out of Scope' and 'Deferred Enhancements').
+
+**Acceptance criteria:**
+
+- A user optionally assigns at most one supported document per section during import; its content is imported as editable Markdown under '#### Imported from <filename>', never silently truncated.
+- A document that cannot be extracted blocks import until the user removes or replaces it; '.docx' embedded images are omitted with a warning.
+- Extraction runs in a Worker with enforced input/output/time limits and is cancellable.
+
+**Development tasks:** to be broken out when US-5 is started. Depends on US-4.
 
 ## Schema Migration Architecture (Target State)
 
@@ -184,17 +229,13 @@ The initial release will:
 - Use TC's existing import UI structure.
 - Label the new action **Import Microsoft TMT Model**.
 - Do not add a separate landing-page migration experience or a multi-step wizard.
-- Keep the initial file-selection view in the existing import modal.
-- After the user selects Preview, expand the same modal to its maximum size rather than opening TC's existing read-only Preview in a separate browser tab.
-- Organize Preview into non-linear **Summary**, **Context**, **Data Flows**, and **Threats** tabs.
-- Provide **Back**, **Cancel**, and **Import** actions without imposing a stepper or forced sequence.
-- Leave existing '.tc.json' import and Preview behavior unchanged.
+- Keep the file-selection view in the existing import modal.
+- Leave existing '.tc.json' import behavior unchanged.
 - The flow is:
   1. Select one required '.tm7' file.
   2. Optionally select and assign one supporting document to each of Application, Architecture, and Data Flow.
-  3. Open Preview.
-  4. Review and edit names and extracted descriptions, inspect DFDs and threats, choose which DFDs to retain, and review warnings or errors.
-  5. Select Import to create and activate a new workspace.
+  3. Select Import to create the new workspace, then review the rendered model in the normal TC views, adjust it with the existing tools (rename/delete diagrams, edit descriptions and threats), and save.
+- Blocking errors and non-blocking warnings surface at import time (see 'Error and Warning Policy'); there is no separate tabbed-Preview modal or migration draft.
 
 ### Workspace and Application Naming
 
@@ -223,19 +264,13 @@ The initial release will:
 - '.txt' is converted to escaped Markdown paragraphs.
 - '.md' remains Markdown after validation and sanitization.
 
-### DFD Preview and Selection
+### Data Flow Diagrams
 
-- Every TMT drawing surface is discovered and rendered.
-- Empty drawing surfaces are reported in the migration summary but are not rendered or stored as DFD images.
-- Every discovered DFD starts selected.
-- Preview displays each DFD's name, rendered image, encoded size, rendering warnings, and associated threat count.
-- Users may exclude DFDs during normal Preview, not only after a storage error.
-- Every selected DFD must render successfully. A selected rendering failure blocks import.
-- A user may explicitly exclude a failed or oversized DFD and continue, or cancel the migration.
-- Excluded DFDs are listed clearly so omissions are never silent.
-- Threats associated with an excluded DFD are still imported. Preview warns how many threats will lack their visual context.
-- When the source contains at least one non-empty drawing surface, at least one successfully rendered DFD must remain selected. Excluding every non-empty DFD blocks import and offers cancellation.
-- A valid TMT model with no non-empty drawing surfaces may be imported with a prominent warning.
+- Every TMT drawing surface is discovered and rendered; every non-empty surface becomes a named DFD in the imported workspace.
+- Empty drawing surfaces are reported as an import warning but are not rendered or stored as DFD images.
+- Every DFD must render successfully; a rendering failure (or an image exceeding the per-image limit) is a blocking error that stops the import.
+- A valid TMT model with no non-empty drawing surfaces imports with a prominent warning.
+- After import, the user removes any unwanted DFDs with the normal Data Flow tools (US-1); there is no pre-import selection step.
 
 ### Post-Import DFD Management
 
@@ -373,21 +408,6 @@ Code-grounded implementation notes (verified against TC source):
 ### Browser-Only Processing
 
 All parsing, conversion, document extraction, rendering, preview, and persistence occur in the browser. No service or external .NET converter is required, and source content is not uploaded.
-
-### Migration Draft
-
-Use an internal 'TmtMigrationDraft' for Preview state. It contains migration-only information such as:
-
-- Source filenames
-- Editable workspace and Application names
-- Extracted and edited descriptions
-- Parsed threats
-- Rendered DFDs and encoded sizes
-- Selected and excluded DFDs
-- Document and DFD errors
-- Warnings and summary counts
-
-Migration-only state does not enter '.tc.json'. Confirmation converts a valid draft into schema '1.1' workspace data.
 
 ### '.tm7' Parsing
 
