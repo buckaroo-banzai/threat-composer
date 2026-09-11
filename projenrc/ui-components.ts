@@ -120,6 +120,9 @@ class ThreatComposerUIComponentsProject extends TypeScriptProject {
     });
 
     this.package.addField("browserslist", browsersList);
+
+    // Keep '.tm7' import fixtures byte-exact: no EOL normalization, no diffs on the large XML blobs.
+    this.gitattributes.addAttributes("**/*.tm7", "binary");
   }
 }
 
