@@ -104,7 +104,7 @@ Statuses apply to both user stories and their development tasks. A user story is
 
 ### US-4 — A user imports a Microsoft TMT '.tm7' model into Threat Composer
 
-**Status:** 'Backlog'
+**Status:** 'In Development'
 
 **Story:** As a Threat Composer user, I can import a Microsoft TMT '.tm7' file and get a new Threat Composer workspace containing every data-flow diagram (faithfully rendered) and every threat (correctly mapped), which I then review and edit with the normal TC tools before saving.
 
@@ -124,7 +124,21 @@ Statuses apply to both user stories and their development tasks. A user story is
 - After import the user adjusts the model with existing TC tools and saves it as a normal schema-'1.1' workspace.
 - Automated tests exercise parsing/rendering/threat-mapping against real sanitized '.tm7' v4.3 fixtures (the maintainer test gate), plus mapping and edge-case unit tests; human side-by-side DFD fidelity review against TMT-generated reference images.
 
-**Development tasks:** to be broken out when US-4 is started. Prerequisite: maintainer provides real sanitized '.tm7' v4.3 sample files.
+**Development tasks:**
+
+| ID | Task | Status |
+| --- | --- | --- |
+| US-4-T1 | Acceptance fixtures and input limits: obtain maintainer-supplied sanitized real '.tm7' v4.3 files; generate matching TMT reference PNGs; measure size and complexity and document the configurable input limits ('.tm7' size, DFD count, elements per DFD, threat count). | 'In Development' (2026-09-11: three real sanitized '.tm7' v4.3 fixtures committed under 'src/utils/tmt/__fixtures__/' and marked 'binary' — Sample_Threat_Model 1 DFD/58 threats, Sample_Threat_Model_Multiple_DFDs 3 DFDs/174, ContosoCast 1 DFD/290; reference PNGs and measured limits deferred until the rendering/acceptance work needs them.) |
+| US-4-T2 | '.tm7' format validation and parsing: read as text, reject 'DOCTYPE', parse with 'DOMParser', require root/namespace and model version 4.3, and extract into a typed narrow internal TMT model (drawing surfaces, elements, connectors, boundaries, annotations, threat instances, knowledge-base lookups). Unit tests against the fixtures plus malformed, malicious, and unsupported-version inputs. Resolve how to run 'DOMParser' under the package's node Jest environment. | 'Backlog' |
+| US-4-T3 | DFD rendering (highest technical uncertainty — spike first on the small single-DFD fixture): typed model -> SVG DOM -> rasterize at 2x -> cropped PNG; enforce the per-image size limit; treat unknown geometry as an error. Structural SVG tests, a browser PNG smoke check, and human side-by-side fidelity review. | 'Backlog' |
+| US-4-T4 | Threat conversion and mapping: parse threat instances and threat-type lookups; apply the title/statement fallback; map status, priority, and category to STRIDE; preserve fixed 'custom:TMT *' plus arbitrary per-property custom metadata; preserve 'numericId'; enforce the failure policy. Unit tests for every mapping and edge case. | 'Backlog' |
+| US-4-T5 | Custom threat-metadata UI and report: net-new generic rendering and editing of all 'custom:*' entries in the existing Metadata section, plus the Additional Threat Metadata report section. | 'Backlog' |
+| US-4-T6 | 'Microsoft TMT Model Information' block on the Application description (name, description, owner, reviewer, contributors, assumptions, external dependencies, and ordered notes). | 'Backlog' |
+| US-4-T7 | Transactional workspace creation: staged import (generate the workspace UUID, validate the schema '1.1' payload, estimate incremental size, write all per-workspace keys, activate on success, roll back on any failure, detect 'QuotaExceededError'); a shared per-workspace storage utility; singleton replace-with-warning plus a backup-export offer. Tests including injected write failures and rollback. | 'Backlog' |
+| US-4-T8 | Import entry point and orchestration: add 'Import Microsoft TMT Model' to the existing import modal (file selection only, no preview); wire parse -> render -> convert -> stage -> activate; surface blocking errors and non-blocking warnings at import time. | 'Backlog' |
+| US-4-T9 | Human acceptance review on representative models with documented results (DFD visual fidelity plus no-data-loss and correct-mapping verification). Maintainer-run. | 'Backlog' |
+
+Sequencing: US-4-T1 unblocks the rest; US-4-T2 precedes US-4-T3 and US-4-T4; US-4-T7 precedes US-4-T8; US-4-T9 is last. Depends on US-1 (multi-DFD model) and US-2 (multi-diagram reports and exports).
 
 ### US-5 — A user brings a supporting document into a description section during import
 
