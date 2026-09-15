@@ -70,7 +70,7 @@ Statuses apply to both user stories and their development tasks. A user story is
 
 **Word/docx SVG export bug (found + fixed 2026-09-02 via US-1-T8):** SVG diagram images never appeared in '.docx' exports — they fell back to an "Image Unavailable" placeholder, and forcing past that hit a hard 'Buffer is not defined' crash. Two stacked pre-existing bugs in 'convertToDocx', both latent because SVGs failed at the first step so the later code never ran: (1) 'fetchImage' built the object-URL Blob without a MIME type, so the browser could not decode SVG (only raster formats are byte-sniffed) — fixed with 'new Blob([buf], { type: contentType })'; (2) 'getImageRun's SVG branch used Node's 'Buffer.from(...)', which is undefined in the browser (CRA/webpack 5 drops the Buffer polyfill) and also wrongly base64-decoded the whole data URL — fixed with a browser-native 'atob' decode that strips the data-URL prefix. SVG diagrams (e.g. the bundled examples' Architecture and Data Flow images, which are 'data:image/svg+xml') now embed correctly with a PNG fallback. NOT a regression from the multi-diagram work — the Architecture image, untouched by US-1, failed identically; SVG-in-Word simply never worked in this codebase before.
 
-**TMT-import story testing gate (maintainer requirement):** Before the TMT-import story (the '.tm7' importer) is marked complete, add unit tests that exercise '.tm7' parsing/DFD rendering and 1.0 -> 1.1 migration against **actual '.tm7' sample DFD fixtures**, not synthetic data. This gate belongs to the import story, not the schema story (US-1).
+**TMT-import story testing gate (maintainer requirement):** Before the TMT-import story (the '.tm7' importer) is marked complete, add unit tests that exercise '.tm7' parsing and Full Report image ingestion and 1.0 -> 1.1 migration against **actual '.tm7' and Full Report fixtures**, not synthetic data. This gate belongs to the import story, not the schema story (US-1).
 
 ### US-3 — A maintainer evolves the data schema with small, single-step migrations
 
@@ -106,36 +106,38 @@ Statuses apply to both user stories and their development tasks. A user story is
 
 **Status:** 'In Development'
 
-**Story:** As a Threat Composer user, I can import a Microsoft TMT '.tm7' file and get a new Threat Composer workspace containing every data-flow diagram (faithfully rendered) and every threat (correctly mapped), which I then review and edit with the normal TC tools before saving.
+**Story:** As a Threat Composer user, I can import a Microsoft TMT '.tm7' file and get a new Threat Composer workspace containing every data-flow diagram (imported from the model's TMT Full Report) and every threat (correctly mapped), which I then review and edit with the normal TC tools before saving.
 
 **Business value:** Delivers the headline capability of the feature — moving an existing TMT threat model into TC — reusing US-1's multi-DFD model and US-2's multi-diagram reports/exports.
 
 **Boundary:**
 
-- In scope: file-format validation and namespace-aware '.tm7' v4.3 parsing; DFD rendering (typed model -> SVG -> cropped PNG); threat conversion with status/priority/category (STRIDE) mapping and all fixed plus arbitrary 'custom:TMT *' metadata; the 'custom:*' threat-card and report UI; the 'Microsoft TMT Model Information' block on the Application description; transactional new-workspace creation (multi-workspace) or singleton replace-with-warning; real sanitized '.tm7' fixtures.
+- Two required inputs: the '.tm7' model and a TMT-generated **Full Report** HTML file for the same model. DFD images are taken from the report (TMT's own rendering); TC does not render diagrams from '.tm7' geometry.
+- In scope: namespace-aware '.tm7' v4.3 parsing for threats, model info, and surface identity/order; ingesting the Full Report HTML to extract each surface's embedded base64 PNG and match it to a '.tm7' surface by order and name; threat conversion with status/priority/category (STRIDE) mapping and all fixed plus arbitrary 'custom:TMT *' metadata; the 'custom:*' threat-card and report UI; the 'Microsoft TMT Model Information' block on the Application description; transactional new-workspace creation (multi-workspace) or singleton replace-with-warning; real sanitized '.tm7' and Full Report fixtures.
 - No bespoke preview: the import creates the workspace and the user reviews and edits it in the normal TC views (rename/delete diagrams via US-1, edit descriptions and threats) before saving. There is no separate tabbed-Preview modal or migration draft.
-- Out of scope: supporting-document extraction (US-5); anything listed under 'Out of Scope for the Initial Release'.
+- Out of scope: rendering DFDs from '.tm7' geometry (we rely on TMT's Full Report); supporting-document extraction (US-5); anything listed under 'Out of Scope for the Initial Release'.
 
 **Acceptance criteria:**
 
-- A valid '.tm7' v4.3 model imports with every data-flow diagram faithfully rendered and every threat mapped with no data loss and no incorrect mapping (statement, status, priority, category/STRIDE, and all detail preserved as 'custom:TMT *'); nothing is silently dropped, truncated, inferred, or reclassified.
-- Invalid input (malformed or DOCTYPE XML, wrong root/namespace, unsupported version, missing required structures, an oversized image, or a threat missing identity/statement) fails with an explicit error and imports nothing.
+- Given a valid '.tm7' v4.3 model and its TMT Full Report, the import creates a workspace with every non-empty surface's DFD image taken from the report and every threat mapped with no data loss and no incorrect mapping (statement, status, priority, category/STRIDE, and all detail preserved as 'custom:TMT *'); nothing is silently dropped, truncated, inferred, or reclassified.
+- The import surface count and names reconcile between the '.tm7' (non-empty surfaces, in order) and the Full Report; a mismatch is reported rather than silently guessed.
+- Invalid input (malformed or DOCTYPE '.tm7' XML, wrong root/namespace, unsupported version, missing required structures, a missing or unreadable Full Report, an oversized image, or a threat missing identity/statement) fails with an explicit error and imports nothing.
 - A failed, oversized, or cancelled import never modifies or corrupts any existing workspace; a singleton/IDE model is replaced only after an explicit warning with a backup-export offer.
 - After import the user adjusts the model with existing TC tools and saves it as a normal schema-'1.1' workspace.
-- Automated tests exercise parsing/rendering/threat-mapping against real sanitized '.tm7' v4.3 fixtures (the maintainer test gate), plus mapping and edge-case unit tests; human side-by-side DFD fidelity review against TMT-generated reference images.
+- Automated tests exercise '.tm7' parsing, Full Report image extraction, surface matching, and threat mapping against real sanitized '.tm7' + Full Report fixtures (the maintainer test gate), plus mapping and edge-case unit tests; human spot-check that imported DFD images match TMT.
 
 **Development tasks:**
 
 | ID | Task | Status |
 | --- | --- | --- |
-| US-4-T1 | Acceptance fixtures and input limits: obtain maintainer-supplied sanitized real '.tm7' v4.3 files; generate matching TMT reference PNGs; measure size and complexity and document the configurable input limits ('.tm7' size, DFD count, elements per DFD, threat count). | 'In Development' (2026-09-11: three real sanitized '.tm7' v4.3 fixtures committed under 'src/utils/tmt/__fixtures__/' and marked 'binary' — Sample_Threat_Model 1 DFD/58 threats, Sample_Threat_Model_Multiple_DFDs 3 DFDs/174, ContosoCast 1 DFD/290; reference PNGs and measured limits deferred until the rendering/acceptance work needs them.) |
-| US-4-T2 | '.tm7' format validation and parsing: read as text, reject 'DOCTYPE', parse with 'DOMParser', require root/namespace and model version 4.3, and extract into a typed narrow internal TMT model (drawing surfaces, elements, connectors, boundaries, annotations, threat instances, knowledge-base lookups). Unit tests against the fixtures plus malformed, malicious, and unsupported-version inputs. Resolve how to run 'DOMParser' under the package's node Jest environment. | 'Backlog' |
-| US-4-T3 | DFD rendering (highest technical uncertainty — spike first on the small single-DFD fixture): typed model -> SVG DOM -> rasterize at 2x -> cropped PNG; enforce the per-image size limit; treat unknown geometry as an error. Structural SVG tests, a browser PNG smoke check, and human side-by-side fidelity review. | 'Backlog' |
+| US-4-T1 | Acceptance fixtures and input limits: obtain maintainer-supplied sanitized real '.tm7' v4.3 files and a matching TMT Full Report HTML for each; measure size and complexity and document the configurable input limits ('.tm7' size, report size, DFD count, threat count). | 'In Development' (2026-09-11: three real sanitized '.tm7' v4.3 fixtures committed under 'src/utils/tmt/__fixtures__/' and marked 'binary' — Sample_Threat_Model 1 DFD/58 threats, Sample_Threat_Model_Multiple_DFDs 3 DFDs/174, ContosoCast 1 DFD/290. Still needed: a matching Full Report HTML per fixture; measured limits deferred until the ingestion/acceptance work needs them.) |
+| US-4-T2 | '.tm7' format validation and parsing (for data, not geometry): read as text, reject 'DOCTYPE', parse with 'DOMParser', require root/namespace and model version 4.3, and extract into a typed narrow internal TMT model — threat instances, threat-type/knowledge-base lookups, model metadata, and the drawing-surface list with each surface's name, GUID, and empty/non-empty state (for matching report images by order and name). Unit tests against the fixtures plus malformed, malicious, and unsupported-version inputs. Resolve how to run 'DOMParser' under the package's node Jest environment. | 'Backlog' |
+| US-4-T3 | TMT Full Report ingestion (replaces in-browser rendering): parse the Full Report HTML with 'DOMParser' ('text/html'), extract each non-empty surface's embedded 'data:image/png;base64' image and its diagram name, and match the images to the parsed '.tm7' surfaces by order (non-empty, model order) with name as a cross-check; enforce the per-image size limit; report a count/name mismatch rather than guessing. Unit tests against real Full Report fixtures plus malformed/mismatched reports. | 'Backlog' |
 | US-4-T4 | Threat conversion and mapping: parse threat instances and threat-type lookups; apply the title/statement fallback; map status, priority, and category to STRIDE; preserve fixed 'custom:TMT *' plus arbitrary per-property custom metadata; preserve 'numericId'; enforce the failure policy. Unit tests for every mapping and edge case. | 'Backlog' |
 | US-4-T5 | Custom threat-metadata UI and report: net-new generic rendering and editing of all 'custom:*' entries in the existing Metadata section, plus the Additional Threat Metadata report section. | 'Backlog' |
 | US-4-T6 | 'Microsoft TMT Model Information' block on the Application description (name, description, owner, reviewer, contributors, assumptions, external dependencies, and ordered notes). | 'Backlog' |
 | US-4-T7 | Transactional workspace creation: staged import (generate the workspace UUID, validate the schema '1.1' payload, estimate incremental size, write all per-workspace keys, activate on success, roll back on any failure, detect 'QuotaExceededError'); a shared per-workspace storage utility; singleton replace-with-warning plus a backup-export offer. Tests including injected write failures and rollback. | 'Backlog' |
-| US-4-T8 | Import entry point and orchestration: add 'Import Microsoft TMT Model' to the existing import modal (file selection only, no preview); wire parse -> render -> convert -> stage -> activate; surface blocking errors and non-blocking warnings at import time. | 'Backlog' |
+| US-4-T8 | Import entry point and orchestration: add 'Import Microsoft TMT Model' to the existing import modal with an upfront prerequisite notice (generate a TMT Full Report first) and two required file selections — the '.tm7' and its Full Report HTML (always prompt for both in every host for now; IDE auto-discovery of a co-located report is deferred). Wire parse '.tm7' -> ingest report -> match surfaces -> convert threats -> stage -> activate; surface blocking errors and non-blocking warnings at import time. | 'Backlog' |
 | US-4-T9 | Human acceptance review on representative models with documented results (DFD visual fidelity plus no-data-loss and correct-mapping verification). Maintainer-run. | 'Backlog' |
 
 Sequencing: US-4-T1 unblocks the rest; US-4-T2 precedes US-4-T3 and US-4-T4; US-4-T7 precedes US-4-T8; US-4-T9 is last. Depends on US-1 (multi-DFD model) and US-2 (multi-diagram reports and exports).
@@ -181,7 +183,7 @@ The feature will provide a migration path from Microsoft TMT into a new TC works
 The initial release will:
 
 - Import a Microsoft TMT '.tm7' file entirely in the browser.
-- Recreate each TMT DFD as a crisp PNG while preserving its semantic content and relative layout.
+- Use the DFD images from a TMT-generated Full Report (TMT's own rendering) rather than recreating diagrams from '.tm7' geometry.
 - Add general support for multiple named DFDs in a TC workspace.
 - Import every TMT threat and its disposition.
 - Optionally extract one supporting document into each existing TC description section: Application, Architecture, and Data Flow.
@@ -229,8 +231,8 @@ The initial release will:
 - The supported model format version for the initial release is '4.3'.
 - A model contains drawing surfaces, model metadata, notes, threat instances, validations, version information, and an embedded knowledge base.
 - Drawing surfaces serialize geometry, labels, connector routes, shape types, element properties, GUIDs, and embedded stencil images.
-- TMT's HTML report does not recreate diagrams from the '.tm7' by itself. The Windows WPF view generates 'SurfacePng' screenshots in memory immediately before report creation, and the report embeds those screenshots.
-- PNG screenshots are not persisted in the '.tm7'; TC must render the serialized geometry itself.
+- TMT's Full Report is a self-contained HTML file. For each non-empty drawing surface it embeds an '<img src="data:image/png;base64,...">' rendered by the Windows WPF view immediately before report creation, under an '<h2>Diagram: {name}</h2>' heading. The report exposes each surface's name (not its GUID) and includes only non-empty surfaces, in model order.
+- PNG screenshots are not persisted in the '.tm7'. Rather than render diagrams itself, TC ingests the Full Report's embedded PNGs (a required second import input) and matches them to '.tm7' surfaces by order and name.
 - TMT uses 'Guid.NewGuid()', which produces RFC 4122 version 4 UUIDs in the same canonical 36-character text form used by TC.
 - TMT threat instances contain a stable positive integer ID and a separate internal composite dictionary key.
 - In '.tm7', resolved threat fields are stored in a per-instance 'Properties' dictionary. The embedded knowledge base provides type metadata and fallback title templates.
@@ -244,11 +246,13 @@ The initial release will:
 - Label the new action **Import Microsoft TMT Model**.
 - Do not add a separate landing-page migration experience or a multi-step wizard.
 - Keep the file-selection view in the existing import modal.
+- Show an upfront **prerequisite notice**: before importing, generate a **Full Report** in TMT (Reports > Create Full Report) and save the HTML file; it supplies the DFD images.
 - Leave existing '.tc.json' import behavior unchanged.
 - The flow is:
   1. Select one required '.tm7' file.
-  2. Optionally select and assign one supporting document to each of Application, Architecture, and Data Flow.
-  3. Select Import to create the new workspace, then review the rendered model in the normal TC views, adjust it with the existing tools (rename/delete diagrams, edit descriptions and threats), and save.
+  2. Select the matching required **Full Report HTML** file. (The browser sandbox cannot read a sibling file automatically, so both are selected explicitly; IDE-host auto-discovery of a co-located report is deferred.)
+  3. Optionally select and assign one supporting document to each of Application, Architecture, and Data Flow.
+  4. Select Import to create the new workspace, then review the model in the normal TC views, adjust it with the existing tools (rename/delete diagrams, edit descriptions and threats), and save.
 - Blocking errors and non-blocking warnings surface at import time (see 'Error and Warning Policy'); there is no separate tabbed-Preview modal or migration draft.
 
 ### Workspace and Application Naming
@@ -280,9 +284,9 @@ The initial release will:
 
 ### Data Flow Diagrams
 
-- Every TMT drawing surface is discovered and rendered; every non-empty surface becomes a named DFD in the imported workspace.
-- Empty drawing surfaces are reported as an import warning but are not rendered or stored as DFD images.
-- Every DFD must render successfully; a rendering failure (or an image exceeding the per-image limit) is a blocking error that stops the import.
+- Each non-empty drawing surface becomes a named DFD whose image is taken from the matching Full Report entry (by order and name).
+- Empty drawing surfaces are reported as an import warning; the Full Report also omits them, so there is no image to import.
+- Every non-empty surface must have a matching report image within the per-image size limit; a missing match, a surface/name mismatch, or an oversized image is a blocking error that stops the import.
 - A valid TMT model with no non-empty drawing surfaces imports with a prominent warning.
 - After import, the user removes any unwanted DFDs with the normal Data Flow tools (US-1); there is no pre-import selection step.
 
@@ -421,7 +425,7 @@ Code-grounded implementation notes (verified against TC source):
 
 ### Browser-Only Processing
 
-All parsing, conversion, document extraction, rendering, and persistence occur in the browser. No service or external .NET converter is required, and source content is not uploaded.
+All parsing, conversion, document extraction, and persistence occur in the browser. DFD images come from the user-provided TMT Full Report, so TC renders no diagrams itself; no service or external .NET converter is required, and source content is not uploaded.
 
 ### '.tm7' Parsing
 
@@ -433,36 +437,33 @@ All parsing, conversion, document extraction, rendering, and persistence occur i
 - Require the drawing-surface and threat-instance structures needed for conversion.
 - Perform namespace-aware, targeted extraction into a typed, narrow internal TMT model.
 - Do not convert the entire XML tree or embedded knowledge base into a generic JavaScript object.
-- Extract only model instances, required element-type metadata, required threat-type metadata, and values needed for rendering or conversion.
+- Extract only model instances, required threat-type metadata, drawing-surface names/GUIDs/empty-state, and values needed for conversion and report-image matching.
 - Unknown or missing model versions fail with an explicit unsupported-format error.
 
-### DFD Rendering
+### TMT Full Report Ingestion
 
-Use this pipeline:
+DFD images come from the TMT Full Report, not from TC rendering. Pipeline:
 
 ```text
-.tm7 drawing-surface XML
-  -> typed internal DFD model
-  -> SVG DOM
-  -> browser rasterization
-  -> cropped PNG data URL
+TMT Full Report HTML
+  -> DOMParser (text/html)
+  -> per-surface <img src="data:image/png;base64,...">
+  -> match to parsed .tm7 surfaces (non-empty, in order; name cross-check)
+  -> store the PNG data URL as the DFD image
 ```
 
-- SVG is an intermediate representation only; TC stores the resulting PNG.
-- Build SVG using DOM APIs and text nodes rather than interpolating untrusted XML into markup.
-- Render at 2x the TMT coordinate dimensions for crisp high-DPI text and lines.
-- Crop only unused outer whitespace.
-- Do not automatically downscale below the fidelity target to meet size limits.
-- Preserve every diagram name.
-- Preserve elements, labels, flow direction, connector routes, trust boundaries, annotations, and relative placement.
-- TC styling may differ from TMT styling when semantic and layout fidelity is preserved.
-- Render custom elements when they use a known geometry and preserve embedded icons where available.
-- Treat unknown geometry as a rendering error rather than silently substituting a generic shape.
+- Parse the report with the browser-native 'DOMParser' as 'text/html'; do not execute it or load its external resources.
+- Extract each surface block: the '<h2>Diagram: {name}</h2>' heading and the following '<img>' whose 'src' is a 'data:image/png;base64' URL.
+- Accept only 'data:image/png;base64' image sources; ignore any other markup.
+- Match report images to '.tm7' non-empty surfaces by order, validating names; report a count or name mismatch rather than guessing.
+- Enforce TC's per-image size limit on each extracted PNG.
+- Preserve each diagram's name from the '.tm7' surface (the report name is the cross-check).
+- The report's fidelity is TMT's own; TC neither re-renders nor downscales the images.
 
 ### Image and Storage Limits
 
 - Retain TC's existing maximum of 1,000,000 characters per image.
-- An oversized crisp PNG is a blocking error that stops the import; the user reduces the source model in TMT and retries, or cancels.
+- An oversized DFD image (from the report) is a blocking error that stops the import; the user reduces the source model in TMT, regenerates the report, and retries, or cancels.
 - Retain 'localStorage'; do not move workspaces to IndexedDB in this project.
 - Show the exact estimated incremental serialized size at import time.
 - Do not claim that the migration will fit before writing. Browsers do not expose an authoritative remaining 'localStorage' capacity; 'navigator.storage.estimate()' covers broader origin storage and is not a reliable 'localStorage' preflight.
@@ -519,7 +520,7 @@ Run Mammoth conversion in a dedicated Web Worker for the initial release:
 - Sanitize the returned HTML and convert it to Markdown on the main thread.
 - Complete an early Phase 0 spike to verify that Mammoth bundles and executes correctly in TC's Worker environment.
 
-The '.tm7' parser and SVG renderer remain on the main thread because 'DOMParser' and the required DOM construction APIs are not available in Web Workers. Process one DFD at a time and yield between diagrams so progress updates and cancellation remain responsive.
+The '.tm7' parser and the Full Report HTML parser remain on the main thread because 'DOMParser' is not available in Web Workers. Report-image extraction is lightweight (reading embedded base64 strings), so no per-diagram worker offloading is needed.
 
 ### Input and Complexity Limits
 
@@ -558,19 +559,20 @@ Update the existing on-screen threat-model report and Markdown, Word, and printa
 - Include the shared Data Flow description once.
 - Include the tentative Additional Threat Metadata section described above.
 
-This is separate from Microsoft TMT's HTML report, which is used only as a visual reference for DFD acceptance review.
+This is separate from the Microsoft TMT Full Report, which supplies the imported DFD images.
 
 ## Error and Warning Policy
 
 ### Blocking Errors
 
-- Malformed XML.
+- Malformed '.tm7' XML.
 - A 'DOCTYPE' declaration.
 - Unexpected root element or namespace.
 - Missing or unsupported TMT version.
 - Missing required model structures.
-- Any non-empty DFD that cannot be rendered.
-- Any DFD that exceeds the per-image limit.
+- A missing, unreadable, or malformed TMT Full Report.
+- A non-empty '.tm7' surface with no matching Full Report image, or a surface count/name mismatch between the '.tm7' and the report.
+- Any DFD image that exceeds the per-image limit.
 - Any threat that cannot be converted without losing identity or statement content.
 - Any assigned supporting document that cannot be extracted.
 - Any schema '1.1' validation failure.
@@ -594,8 +596,8 @@ No in-scope source content is silently omitted, truncated, inferred, or reclassi
 ### Phase 0: Acceptance Fixtures and Baseline
 
 - Create sanitized representative '.tm7' fixtures.
-- Generate matching reference PNGs through Microsoft TMT's HTML report process.
-- Include a small model for every supported geometry and a production-like multi-DFD model.
+- Save a matching TMT Full Report HTML for each fixture (the source of DFD images).
+- Include a small single-DFD model and a production-like multi-DFD model.
 - Verify and record the baseline 'pdk build' and 'pdk test' results.
 - Confirm fixture licensing and remove sensitive information before committing.
 - Measure representative input sizes and model complexity, then select and document the initial configurable limits.
@@ -611,16 +613,15 @@ No in-scope source content is silently omitted, truncated, inferred, or reclassi
 - Update TC reports and all export formats for multiple DFDs.
 - Add schema, migration, context, UI, and report tests.
 
-### Phase 2: '.tm7' Parser and DFD Renderer
+### Phase 2: '.tm7' Parser and Full Report Ingestion
 
-- Add format validation and targeted XML parsing.
-- Define the narrow internal TMT model.
-- Parse drawing surfaces, elements, connectors, boundaries, annotations, and required knowledge-base lookups.
-- Build namespace-safe SVG rendering.
-- Rasterize at 2x and crop unused whitespace.
-- Enforce per-diagram and per-image validation.
-- Add structural renderer tests and browser PNG smoke checks.
-- Perform human side-by-side review against TMT-generated reference PNGs.
+- Add '.tm7' format validation and targeted XML parsing.
+- Define the narrow internal TMT model (threats, model info, surface list with names/GUIDs/empty-state).
+- Parse the Full Report HTML and extract each non-empty surface's embedded base64 PNG and diagram name.
+- Match report images to '.tm7' surfaces by order with a name cross-check.
+- Enforce per-image size validation and count/name-mismatch detection.
+- Add parser and report-ingestion tests, including malformed and mismatched reports.
+- Human spot-check that imported DFD images match TMT.
 
 ### Phase 3: Threat Conversion and Custom Metadata
 
@@ -655,9 +656,8 @@ No in-scope source content is silently omitted, truncated, inferred, or reclassi
 ### Automated Tests
 
 - Parser unit tests for valid, malformed, malicious, incomplete, and unsupported-version XML.
-- Structural tests for every supported DFD element and connector type.
-- SVG assertions for geometry, coordinates, labels, ordering, paths, markers, and boundaries.
-- Browser tests confirming PNG generation, expected dimensions, nonblank output, and label presence.
+- Full Report ingestion tests: extract per-surface base64 PNGs, match to '.tm7' surfaces by order and name, and detect count/name mismatches.
+- Per-image size-limit and malformed/mismatched-report tests.
 - Threat-mapping tests for every state, priority, STRIDE category, metadata field, and ID edge case.
 - Schema '1.0' to '1.1' import and local-state migration tests.
 - Multi-DFD CRUD, ordering, selection, and export tests.
@@ -667,14 +667,13 @@ No in-scope source content is silently omitted, truncated, inferred, or reclassi
 
 ### Human Acceptance Review
 
-Human review is required for visual fidelity. For each representative model:
+Because DFD images come from TMT's own Full Report, fidelity is inherited rather than reproduced. For each representative model, spot-check that:
 
-1. Generate reference DFD PNGs using Microsoft TMT's report workflow.
-2. Import the same '.tm7' into TC.
-3. Compare each DFD side by side for elements, labels, routes, arrow direction, trust boundaries, annotations, relative placement, clipping, and readability.
-4. Record discrepancies and resolve all semantic or readability failures.
+1. Each non-empty surface's imported image matches the corresponding diagram in the TMT Full Report.
+2. Surface count and names reconcile between the '.tm7' and the report (no missing or mis-ordered diagrams).
+3. Threats and model info imported from the '.tm7' are complete and correctly mapped.
 
-Automated screenshot/pixel snapshots are not initial CI correctness gates because browser, OS, font, and antialiasing differences make them brittle. Structural tests are the primary automated renderer contract.
+Pixel-level image comparison is unnecessary because the images are TMT's own PNGs, copied verbatim.
 
 ## Deferred Enhancements
 
