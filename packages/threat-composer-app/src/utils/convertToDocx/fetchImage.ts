@@ -14,6 +14,7 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { FALLBACK_IMAGE } from './fallbackImage';
+import { isImageUrlSafeToFetch } from './isImageUrlSafeToFetch';
 
 
 const WORD_DOCX_WIDTH = 600;
@@ -32,9 +33,16 @@ const fetchImage = async (
   url: string,
   fetchOriginalFailed?: boolean,
 ): Promise<{ image: ArrayBuffer; width: number; height: number; type: 'jpg' | 'png' | 'gif' | 'bmp' | 'svg'; fetchOriginalFailed: boolean }> => {
+  // SSRF guard: never fetch a local/private/link-local URL from an (untrusted) imported model.
+  if (!isImageUrlSafeToFetch(url)) {
+    console.log('Blocked image fetch to a non-public URL during export, returning placeholder', url);
+    return fetchImage(FALLBACK_IMAGE, true);
+  }
   const image = new Image();
   try {
-    const res = await fetch(url);
+    // redirect: 'error' closes redirect-based SSRF: the browser cannot expose a redirect target
+    // for us to re-validate, so we refuse to follow any redirect rather than risk a public->internal hop.
+    const res = await fetch(url, { redirect: 'error' });
     const buf = await res.arrayBuffer();
     const contentType = res.headers.get('content-type') || 'image/png';
     return await new Promise((resolve, reject) => {
