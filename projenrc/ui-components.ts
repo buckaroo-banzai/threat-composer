@@ -124,6 +124,8 @@ class ThreatComposerUIComponentsProject extends TypeScriptProject {
 
     // Keep '.tm7' import fixtures byte-exact: no EOL normalization, no diffs on the large XML blobs.
     this.gitattributes.addAttributes("**/*.tm7", "binary");
+    // Keep the TMT Full Report '.htm' fixtures byte-exact (they carry large embedded base64 images).
+    this.gitattributes.addAttributes("**/*.htm", "binary");
   }
 }
 
