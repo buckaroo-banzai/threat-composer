@@ -19,13 +19,13 @@
 // would otherwise fetch it. isImageUrlSafeToFetch parses the URL first (canonicalizing percent-
 // encoding, case, IDNA/punycode, and IP-literal forms) and only then checks the canonical scheme
 // and host, so escaped or alternate encodings cannot slip a blocked host past a raw-string match.
-// It allows data: URIs and public http(s) hosts, and denies the SDL "Sensitive IP Ranges"
-// (Microsoft.Security.SystemsADM.10107): loopback, RFC1918 private, CGNAT, 169.254 link-local
-// (incl. IMDS), Azure WireServer (168.63.129.16), 25.0.0.0/8, and the IPv6 equivalents (::/96,
-// fc00::/7 ULA, fe80::/10 link-local, fec0::/10 site-local, plus IPv4-mapped forms), and localhost.
-// The requirement also mandates validating the DNS-RESOLVED IP; a browser cannot resolve DNS, so
-// DNS rebinding is an accepted residual that would need a server-side proxy. Redirect-based SSRF is
-// handled separately in fetchImage via redirect: 'error'.
+// It allows data: URIs and public http(s) hosts, and denies internal/reserved IP ranges that are
+// common SSRF targets: loopback, RFC1918 private, CGNAT, 169.254 link-local (incl. cloud instance
+// metadata), the Azure WireServer address (168.63.129.16), 25.0.0.0/8, and the IPv6 equivalents
+// (::/96, fc00::/7 ULA, fe80::/10 link-local, fec0::/10 site-local, plus IPv4-mapped forms), and
+// localhost. Validating the DNS-resolved IP is not possible in a browser, so DNS rebinding is an
+// accepted residual that would need a server-side proxy. Redirect-based SSRF is handled separately
+// in fetchImage via redirect: 'error'.
 
 const isPrivateIpv4 = (host: string): boolean => {
   const match = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
@@ -39,11 +39,11 @@ const isPrivateIpv4 = (host: string): boolean => {
   const [a, b, c, d] = octets;
   if (a === 0) return true; // 0.0.0.0/8 unspecified
   if (a === 10) return true; // 10/8 RFC1918 private
-  if (a === 25) return true; // 25.0.0.0/8 (SDL Sensitive IP Ranges deny-list)
+  if (a === 25) return true; // Technically, publicly routable but often used for internal networks
   if (a === 100 && b >= 64 && b <= 127) return true; // 100.64/10 CGNAT shared space
   if (a === 127) return true; // 127/8 loopback
   if (a === 168 && b === 63 && c === 129 && d === 16) return true; // 168.63.129.16 Azure WireServer
-  if (a === 169 && b === 254) return true; // 169.254/16 link-local incl. cloud metadata (IMDS)
+  if (a === 169 && b === 254) return true; // 169.254/16 link-local incl. cloud instance metadata
   if (a === 172 && b >= 16 && b <= 31) return true; // 172.16/12 RFC1918 private
   if (a === 192 && b === 168) return true; // 192.168/16 RFC1918 private
   return false;
@@ -74,7 +74,7 @@ const isBlockedHost = (hostname: string): boolean => {
   }
   if (host.includes(':')) { // IPv6 literal
     // IPv4-mapped IPv6 (::ffff:x.x.x.x / ::ffff:hhhh:hhhh): decide by the embedded IPv4 so a mapped
-    // PUBLIC address is not over-blocked (the Sensitive IP Ranges table does not deny ::ffff:0:0/96).
+    // PUBLIC address is not over-blocked (a mapped public IPv4 is a public host, not an internal one).
     const embedded = mappedIpv4(host);
     if (embedded) {
       return isPrivateIpv4(embedded);
