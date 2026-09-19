@@ -58,6 +58,12 @@ class ThreatComposerMonorepoProject extends MonorepoTsProject {
       "resolutions.lodash",
       "^4.18.0"
     );
+    // Force a fast-xml-parser version with the DOCTYPE/entity-expansion CVEs fixed; the AWS SDK
+    // otherwise pulls in a vulnerable 5.5.8 transitively.
+    this.tryFindObjectFile("package.json")?.addOverride(
+      "resolutions.fast-xml-parser",
+      "^5.11.1"
+    );
     this.tryFindObjectFile("package.json")?.addOverride(
       "resolutions.qs",
       "^6.15.0"

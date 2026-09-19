@@ -211,6 +211,11 @@
       "type": "runtime"
     },
     {
+      "name": "fast-xml-parser",
+      "version": "^5.11.1",
+      "type": "runtime"
+    },
+    {
       "name": "indefinite",
       "type": "runtime"
     },

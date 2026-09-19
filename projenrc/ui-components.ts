@@ -36,6 +36,7 @@ class ThreatComposerUIComponentsProject extends TypeScriptProject {
         "react-markdown",
         "d3",
         "sanitize-html",
+        "fast-xml-parser@^5.11.1",
         "rehype-raw",
         "@aws-northstar/ui",
         "@emotion/react",
