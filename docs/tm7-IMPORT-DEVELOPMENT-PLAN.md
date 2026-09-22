@@ -165,6 +165,10 @@ Security follow-up (independent of the sequence above): harden the shared 'Markd
 
 **Development tasks:** to be broken out when US-5 is started. Depends on US-4.
 
+| ID | Task | Status |
+| --- | --- | --- |
+| US-5-T1 | Add the maintainer-supplied ContosoCast supporting document (Word '.docx', convertible to Markdown) as an extraction fixture; it carries narrative assets/threats/mitigations/security-assumptions text to be imported verbatim as editable Markdown into a description section (not parsed into entities). | 'Backlog' |
+
 ## Schema Migration Architecture (Target State)
 
 This is the design we would build from scratch for clean, reliable versioned migrations. US-1 delivers user value now; US-3 refactors toward this target. New migration code should move toward these principles rather than perpetuate unversioned, in-place handling.
