@@ -1,5 +1,6 @@
 {
   "coverageProvider": "v8",
+  "testEnvironment": "<rootDir>/jest/testEnvironment.js",
   "transformIgnorePatterns": [
     "[/\\\\]node_modules[/\\\\](?!unified|@aws-northstar/ui).+\\.(js|jsx|mjs|cjs|ts|tsx)$"
   ],

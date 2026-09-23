@@ -47,6 +47,8 @@ class ThreatComposerUIComponentsProject extends TypeScriptProject {
       ],
       devDeps: [
         "@cloudscape-design/jest-preset",
+        "jest-environment-jsdom@^29",
+        "jest-environment-node@^29",
         "@types/lodash.isequal",
         "@types/indefinite",
         "@types/react-dom@^18",
@@ -80,6 +82,7 @@ class ThreatComposerUIComponentsProject extends TypeScriptProject {
       jestOptions: {
         configFilePath: "./jest.config.json",
         jestConfig: {
+          testEnvironment: "<rootDir>/jest/testEnvironment.js",
           transformIgnorePatterns: [
             `[/\\\\]node_modules[/\\\\](?!${uiESModules}).+\\.(js|jsx|mjs|cjs|ts|tsx)$`,
           ],

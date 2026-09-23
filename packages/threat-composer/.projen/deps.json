@@ -115,6 +115,16 @@
       "type": "build"
     },
     {
+      "name": "jest-environment-jsdom",
+      "version": "^29",
+      "type": "build"
+    },
+    {
+      "name": "jest-environment-node",
+      "version": "^29",
+      "type": "build"
+    },
+    {
       "name": "jest-junit",
       "version": "^15",
       "type": "build"
