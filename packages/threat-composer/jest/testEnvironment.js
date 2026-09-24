@@ -24,12 +24,24 @@ const asEnvironmentClass = (mod) => mod.default || mod;
 const NodeEnvironment = asEnvironmentClass(require('jest-environment-node'));
 const JsdomEnvironment = asEnvironmentClass(require('jest-environment-jsdom'));
 
-const JSDOM_TEST_PATTERNS = [/extractTmtReportDiagrams/];
+const JSDOM_TEST_PATTERNS = [/extractTmtReportDiagrams/, /importTmtModel/];
+// jsdom's crypto (unlike Node and real browsers) does not implement randomUUID; add it so code that
+// relies on it can be exercised in jsdom without changing production behavior.
+const { randomUUID } = require('crypto');
 
+class JsdomTestEnvironment extends JsdomEnvironment {
+  async setup() {
+    await super.setup();
+    const cryptoObj = this.global.crypto;
+    if (cryptoObj && typeof cryptoObj.randomUUID !== 'function') {
+      cryptoObj.randomUUID = () => randomUUID();
+    }
+  }
+}
 class SelectiveTestEnvironment {
   constructor(config, context) {
     const usesDom = JSDOM_TEST_PATTERNS.some((pattern) => pattern.test(context.testPath));
-    const Environment = usesDom ? JsdomEnvironment : NodeEnvironment;
+    const Environment = usesDom ? JsdomTestEnvironment : NodeEnvironment;
     // A constructor may return a different object; Jest then uses that concrete environment instance.
     return new Environment(config, context);
   }
