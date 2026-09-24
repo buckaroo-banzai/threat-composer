@@ -7,5 +7,5 @@ yarn workspaces run eslint
 # Run Ruff on Python package - CHECK ONLY (no auto-fix)
 # If checks fail, run manually: cd packages/threat-composer-ai && uv run ruff check . --fix && uv run ruff format .
 cd packages/threat-composer-ai && \
-  uv run ruff check . && \
-  uv run ruff format --check .
+  uv run --locked ruff check . && \
+  uv run --locked ruff format --check .
