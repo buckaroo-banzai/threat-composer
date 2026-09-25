@@ -78,3 +78,42 @@ describe('importTmtModel - workspace name', () => {
     expect(result.workspaceName).toBe('My File');
   });
 });
+
+describe('importTmtModel - error fixtures', () => {
+  test('reports the unconvertible threats from the (TMT-openable) "with errors" model', () => {
+    const result = importTmtModel(
+      fixture('Sample_Threat_Model_With_Errors.tm7'),
+      fixture('Sample_Threat_Model_With_Errors.htm'),
+      'Sample_Threat_Model_With_Errors.tm7',
+    );
+    expect(result.data.threats).toHaveLength(27);
+    expect(result.data.dataflow?.diagrams?.map((d) => d.name)).toEqual(['Diagram 1']);
+    expect(result.warnings).toEqual([]);
+    expect(result.unconvertible).toHaveLength(2);
+    expect(result.unconvertible).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 7, reason: expect.stringContaining('No resolvable threat statement') }),
+        expect.objectContaining({ id: 14, reason: expect.stringContaining('exceeding the 1400-character limit') }),
+      ]),
+    );
+    // The convertible threats still assemble into a schema-valid document.
+    expect(() => DataExchangeFormatSchema.parse(result.data)).not.toThrow();
+  });
+
+  test('reports the non-blocking warnings from the malformed model', () => {
+    const result = importTmtModel(
+      fixture('Sample_Threat_Model_Malformed.tm7'),
+      fixture('Sample_Threat_Model.htm'),
+      'Sample_Threat_Model_Malformed.tm7',
+    );
+    expect(result.unconvertible).toEqual([]);
+    expect(result.data.threats).toHaveLength(29);
+    expect(result.warnings).toHaveLength(8);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Unknown TMT state 'Bogus' for threat 7"),
+        expect.stringContaining("category 'Custom'"),
+      ]),
+    );
+  });
+});
