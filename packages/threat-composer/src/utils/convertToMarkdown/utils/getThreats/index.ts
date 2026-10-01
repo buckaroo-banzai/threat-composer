@@ -13,16 +13,17 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
-import { METADATA_KEY_PREFIX_CUSTOM } from '../../../../configs';
-import { STATUS_NOT_SET } from '../../../../configs/status';
 import { DataExchangeFormat } from '../../../../customTypes';
-import threatStatus from '../../../../data/status/threatStatus.json';
 import escapeMarkdown from '../../../../utils/escapeMarkdown';
+import getThreatReportFields, { LinkedReportItem } from '../../../../utils/getThreatReportFields';
 import parseTableCellContent from '../../../../utils/parseTableCellContent';
 import standardizeNumericId from '../../../../utils/standardizeNumericId';
 
 // Line breaks become <br/> so untrusted text stays on its bullet line and cannot start new Markdown blocks.
 const escapeInlineMarkdown = (text: string) => escapeMarkdown(text).replace(/\r\n|\r|\n/g, '<br/>');
+
+const linkedItemsContent = (items: LinkedReportItem[]) =>
+  items.map((item) => `[**${item.id}**](#${item.id}): ${escapeMarkdown(item.content)}`).join('<br/>');
 
 export const getThreatsContent = async (
   data: DataExchangeFormat,
@@ -35,63 +36,31 @@ export const getThreatsContent = async (
 
   if (data.threats) {
     const blocks = await Promise.all(data.threats.map(async (x) => {
-      const mitigationLinks = data.mitigationLinks?.filter(ml => ml.linkedId === x.id) || [];
-      const assumptionLinks = data.assumptionLinks?.filter(al => al.linkedId === x.id) || [];
       const threatId = `T-${standardizeNumericId(x.numericId)}`;
-      const assumptionsContent = assumptionLinks.map(al => {
-        const assumption = data.assumptions?.find(a => a.id === al.assumptionId);
-        if (assumption) {
-          const assumptionId = `A-${standardizeNumericId(assumption.numericId)}`;
-          return `[**${assumptionId}**](#${assumptionId}): ${escapeMarkdown(assumption.content)}`;
-        }
-        return null;
-      }).filter(al => !!al).join('<br/>');
-      const mitigationsContent = mitigationLinks.map(ml => {
-        const mitigation = data.mitigations?.find(m => m.id === ml.mitigationId);
-        if (mitigation) {
-          const mitigationId = `M-${standardizeNumericId(mitigation.numericId)}`;
-          return `[**${mitigationId}**](#${mitigationId}): ${escapeMarkdown(mitigation.content)}`;
-        }
-        return null;
-      }).filter(ml => !!ml).join('<br/>');
-      const status = (x.status && threatStatus.find(ts => ts.value === x.status)?.label) || STATUS_NOT_SET;
-      const priority = x.metadata?.find(m => m.key === 'Priority')?.value || '';
-      const STRIDE = ((x.metadata?.find(m => m.key === 'STRIDE')?.value || []) as string[]).join(', ');
+      const fields = getThreatReportFields(x, data);
       const comments = await parseTableCellContent((x.metadata?.find(m => m.key === 'Comments')?.value as string) || '');
-
-      const descriptionKey = `${METADATA_KEY_PREFIX_CUSTOM}TMT Description`;
-      const descriptionEntry = x.metadata?.find(m => m.key === descriptionKey);
-      const description = descriptionEntry
-        ? (Array.isArray(descriptionEntry.value) ? descriptionEntry.value.join(', ') : descriptionEntry.value)
-        : '';
 
       const block: string[] = [];
       block.push(`### <a name="${threatId}"></a>**${threatId}** ${escapeInlineMarkdown(x.statement || '')}`);
       block.push('');
-      if (description) {
-        block.push(`- **TMT Description:** ${escapeInlineMarkdown(description)}`);
+      if (fields.tmtDescription) {
+        block.push(`- **TMT Description:** ${escapeInlineMarkdown(fields.tmtDescription)}`);
       }
-      block.push(`- **Status:** ${status}`);
-      block.push(`- **Priority:** ${priority}`);
-      block.push(`- **STRIDE:** ${STRIDE}`);
+      block.push(`- **Status:** ${fields.status}`);
+      block.push(`- **Priority:** ${fields.priority}`);
+      block.push(`- **STRIDE:** ${fields.stride}`);
       if (!threatsOnly) {
-        block.push(`- **Mitigations:** ${mitigationsContent}`);
-        block.push(`- **Assumptions:** ${assumptionsContent}`);
+        block.push(`- **Mitigations:** ${linkedItemsContent(fields.mitigations)}`);
+        block.push(`- **Assumptions:** ${linkedItemsContent(fields.assumptions)}`);
       }
       block.push(`- **Comments:** ${comments}`);
 
-      // 'TMT Description' is surfaced above; the remaining custom entries go in a collapsed section.
-      const customMetadata = (x.metadata || []).filter(
-        m => m.key.startsWith(METADATA_KEY_PREFIX_CUSTOM) && m.key !== descriptionKey,
-      );
-      if (customMetadata.length > 0) {
+      if (fields.customMetadata.length > 0) {
         block.push('');
         block.push('<details>');
         block.push('<summary>Additional metadata</summary>');
         block.push('');
-        customMetadata.forEach(m => {
-          const name = m.key.slice(METADATA_KEY_PREFIX_CUSTOM.length);
-          const value = Array.isArray(m.value) ? m.value.join(', ') : m.value;
+        fields.customMetadata.forEach(({ name, value }) => {
           block.push(`- **${escapeInlineMarkdown(name)}:** ${escapeInlineMarkdown(value)}`);
         });
         block.push('');

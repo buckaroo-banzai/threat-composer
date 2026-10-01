@@ -18,8 +18,8 @@ Date: 2026-09-30. Branch head: '838c581'.
 | R3 | Use a single name for the migration entry point, and drop the repeated version check | Simplicity | Medium | Fixed 2026-10-01 ([3e8c8b0](https://github.com/buckaroo-banzai/threat-composer/commit/3e8c8b05437ba6affba2da17373c76995cce1eaa)) |
 | R4 | Extract the shared held-edit logic of 'CommentsEdit' and 'CustomMetadataEditor' | Simplicity | Medium | Verified + Judgment |
 | R5 | Reset the TMT import state in one place in 'FileImport' | Simplicity | Medium | Fixed 2026-10-01 ([fdc3879](https://github.com/buckaroo-banzai/threat-composer/commit/fdc38795ac3df8e96ecb9c2c084a519d3b0ec8cd)) |
-| R6 | Share the per-threat report fields between the Markdown and Word exports | Simplicity | Medium | Verified + Judgment |
-| R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Fixed 2026-10-01 |
+| R6 | Share the per-threat report fields between the Markdown and Word exports | Simplicity | Medium | Fixed 2026-10-01 |
+| R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Fixed 2026-10-01 ([b5c37f5](https://github.com/buckaroo-banzai/threat-composer/commit/b5c37f5143304c0e6f05607df569cfac95efbbcd)) |
 | R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Partly done 2026-10-01 ([31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)): 'order' and its sort removed; 'version' restored because it documents the supported TMT format version; other fields kept by decision |
 | R9 | Trim TMT surface names once, at parse time | Simplicity | Low | Fixed 2026-10-01 ([31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)) |
 | R10 | Fix comments that break project rules (internal SDL ID, untagged forward reference, TODO format, spelling) | Comments | Low | Fixed 2026-10-01 ([febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717)) |
@@ -104,6 +104,8 @@ I recommend (a), followed by a real VS Code check: open a 1.0 file, choose **Upg
 
 ### R6: The Markdown and Word reports duplicate the per-threat field logic (Medium, Verified + Judgment)
 
+**Status:** fixed 2026-10-01. A generic 'getThreatReportFields(threat, data)' in the core package (exported for the app) returns the status label, priority, STRIDE, the TMT description, the other custom entries, and the linked mitigations and assumptions; both reports use it, and the Word export's two copied loops are replaced by 'linkedItemRuns(label, items)'. The helper has its own unit tests, and the existing Markdown report tests pass unchanged. The Word export's threat section has no unit test, so it is checked manually.
+
 **Where:**
 - Markdown: [getThreats/index.ts](../packages/threat-composer/src/utils/convertToMarkdown/utils/getThreats/index.ts#L62-L84).
 - Word: [getThreats.ts](../packages/threat-composer-app/src/utils/convertToDocx/getThreats.ts#L33). Its mitigation and assumption loops ([line 63](../packages/threat-composer-app/src/utils/convertToDocx/getThreats.ts#L63) and [line 78](../packages/threat-composer-app/src/utils/convertToDocx/getThreats.ts#L78)) are copies of each other.
@@ -118,7 +120,7 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R7: 'convertTmtThreats' is one long loop (Medium, Judgment)
 
-**Status:** fixed 2026-10-01. By your decision, the metadata building moved into 'buildThreatMetadata(threat, model, category)', and the three limit checks into 'getMetadataLimitError(metadata)', which returns the reason or 'undefined' (matching the existing 'getCustomMetadataNameError' pattern). The existing converter tests pass unchanged. One edge case changed: the 'custom:TMT Diagram' lookup now takes the first surface with a matching GUID rather than the last; valid TMT files have unique surface GUIDs.
+**Status:** fixed 2026-10-01 in commit [b5c37f5](https://github.com/buckaroo-banzai/threat-composer/commit/b5c37f5143304c0e6f05607df569cfac95efbbcd). By your decision, the metadata building moved into 'buildThreatMetadata(threat, model, category)', and the three limit checks into 'getMetadataLimitError(metadata)', which returns the reason or 'undefined' (matching the existing 'getCustomMetadataNameError' pattern). The existing converter tests pass unchanged. One edge case changed: the 'custom:TMT Diagram' lookup now takes the first surface with a matching GUID rather than the last; valid TMT files have unique surface GUIDs.
 
 **Where:** [convertTmtThreats/index.ts](../packages/threat-composer/src/utils/tmt/convertTmtThreats/index.ts#L191-L338).
 
