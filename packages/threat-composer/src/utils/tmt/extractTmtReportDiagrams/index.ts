@@ -22,7 +22,7 @@ export interface TmtReportDiagram {
   image: string; // full 'data:image/png;base64,...' URL
 }
 
-// Generous limits; real reports are far smaller.
+// Upper bounds on untrusted input.
 const MAX_REPORT_CHARS = 50_000_000;
 const MAX_DIAGRAM_IMAGE_BYTES = 10_000_000;
 

@@ -162,6 +162,13 @@ Threat-model follow-up: in-progress, unconfirmed edits now cross from the web vi
 
 Static-analysis follow-up (2026-09-30, US-4-T10 SDL review): check whether CodeQL code scanning is enabled on the fork through GitHub code scanning; it would flag patterns such as regular expressions built from input.
 
+Import size-limit follow-up (2026-10-01, action item): the TMT import limits were chosen without data on real-world file sizes; the only basis so far is our test fixtures (largest: 1.65 MB '.tm7', 1.6 MB Full Report), which are not a representative sample. When access to the large repository of real threat models is available, measure the sizes of real '.tm7' files, Full Reports, and individual diagram images, then set the limits from that data. The limits in question:
+- 20 MB per selected file ('MAX_TMT_FILE_BYTES' in 'FileImport'); this is the limit a large file hits first.
+- 50 million characters for the '.tm7' text ('parseTmtModel') and for the Full Report text ('extractTmtReportDiagrams').
+- 10 MB per diagram image ('extractTmtReportDiagrams').
+- The schema's cap on any data-flow diagram image: 1,000,000 characters as a base64 data URL ('IMAGE_BASE64_MAX_LENGTH'), roughly 730 KB of PNG. A larger TMT diagram passes the 10 MB check but then fails schema validation, so this is the effective per-diagram limit. It is part of the data schema, not just an import setting, so changing it affects every Threat Composer file.
+Also decide whether these limits should move to configuration that can be overridden without a code change.
+
 Incident (2026-09-29): after an IDE restart, 'convertTmtThreats' and its test had silently reverted to their 2026-09-21 state, from before the SDL review (throw on failure, no 'unconvertible' result), apparently restored by VS Code's chat edit tracking during the IDE instability. Both were restored to the committed 'f7b3bbd' design: a structured 'unconvertible' result with the Abort/Ignore overlay, per the user's 2026-09-21 decision.
 
 ### US-5 — A user brings a supporting document into a description section during import

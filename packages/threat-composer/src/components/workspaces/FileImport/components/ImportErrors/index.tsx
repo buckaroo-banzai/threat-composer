@@ -19,19 +19,21 @@ import Modal from '@cloudscape-design/components/modal';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import TextContent from '@cloudscape-design/components/text-content';
 import { FC } from 'react';
+import { TmtUnconvertibleThreat } from '../../../../../utils/tmt/convertTmtThreats';
 
 export interface ImportErrorsProps {
   visible: boolean;
-  unconvertible: { id: number; reason: string }[];
+  unconvertible: TmtUnconvertibleThreat[];
   warnings: string[];
   onAbort: () => void;
   onIgnore: () => void;
 }
 
 const ImportErrors: FC<ImportErrorsProps> = ({ visible, unconvertible, warnings, onAbort, onIgnore }) => {
+  const hasErrors = unconvertible.length > 0;
   return <Modal
     visible={visible}
-    header="Import errors"
+    header={hasErrors ? 'Import errors' : 'Review import warnings'}
     onDismiss={onAbort}
     footer={
       <Box float="right">
@@ -44,14 +46,15 @@ const ImportErrors: FC<ImportErrorsProps> = ({ visible, unconvertible, warnings,
   >
     <SpaceBetween direction="vertical" size="m">
       <TextContent>
-        Some content in this model could not be imported. Review the items below, then either
-        abort to fix the source model, or ignore them and import the rest.
+        {hasErrors
+          ? 'Some content in this model could not be imported. Review the items below, then either abort to fix the source model, or ignore them and import the rest.'
+          : 'Some threats were imported with adjustments. Review them below, then abort or continue.'}
       </TextContent>
-      {unconvertible.length > 0 && <TextContent key="unconvertible">
+      {hasErrors && <TextContent key="unconvertible">
         <h4>Threats that could not be imported ({unconvertible.length})</h4>
         <p>These threats will be omitted from the import:</p>
         <ul>
-          {unconvertible.map((item) => <li key={item.id}>TMT threat {item.id}: {item.reason}</li>)}
+          {unconvertible.map((item, index) => <li key={index}>TMT threat {item.id}: {item.reason}</li>)}
         </ul>
       </TextContent>}
       {warnings.length > 0 && <TextContent key="warnings">

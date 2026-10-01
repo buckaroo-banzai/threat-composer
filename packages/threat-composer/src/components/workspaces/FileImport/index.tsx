@@ -30,7 +30,7 @@ import FileUpload from '../../generic/FileUpload';
 
 type ImportMode = 'json' | 'tmt';
 
-// Reject an oversized file before reading it into memory. Real models and reports are under 2 MB.
+// Reject an oversized file before reading it into memory.
 const MAX_TMT_FILE_BYTES = 20 * 1024 * 1024;
 
 export interface FileImportProps {
