@@ -15,6 +15,7 @@
  ******************************************************************************************************************** */
 import { useCallback, useEffect, useState } from 'react';
 import { ComposerMode, TemplateThreatStatement } from '../../../../customTypes';
+import { EntityUpdate, updateEntityById } from '../../../../utils/entityUpdates';
 import getNewThreatStatement from '../../../../utils/getNewThreatStatement';
 import { View } from '../../types';
 
@@ -100,6 +101,10 @@ const useThreats = (
     });
   }, [setStatementList]);
 
+  const handleUpdateStatement = useCallback((id: string, update: EntityUpdate) => {
+    setStatementList((prevList) => updateEntityById(prevList, id, update));
+  }, [setStatementList]);
+
   useEffect(() => {
     if (composerMode === 'ThreatsOnly') {
       if (editingStatement) {
@@ -120,6 +125,7 @@ const useThreats = (
     handlRemoveStatement,
     handleEditStatement,
     handleSaveStatement,
+    handleUpdateStatement,
     lenStatementList,
     editingStatementExist,
   };

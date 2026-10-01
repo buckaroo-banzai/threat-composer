@@ -24,6 +24,7 @@ import { FC, useCallback, useMemo } from 'react';
 import { THREAT_STATUS_COLOR_MAPPING } from '../../../configs/status';
 import { TemplateThreatStatement } from '../../../customTypes';
 import threatStatus from '../../../data/status/threatStatus.json';
+import { EntityUpdate } from '../../../utils/entityUpdates';
 import AssumptionLink from '../../assumptions/AssumptionLink';
 import CopyToClipbord from '../../generic/CopyToClipboard';
 import GenericCard from '../../generic/GenericCard';
@@ -40,6 +41,7 @@ export interface ThreatStatementCardProps {
   onEditInWizard?: (id: string) => void;
   onEditStatementStatus: (statement: TemplateThreatStatement, status: string) => void;
   onEditMetadata: (statement: TemplateThreatStatement, key: string, value: string | string[] | undefined) => void;
+  onUpdateStatement?: (id: string, update: EntityUpdate) => void;
   onAddTagToStatement?: (statement: TemplateThreatStatement, tag: string) => void;
   onRemoveTagFromStatement?: (statement: TemplateThreatStatement, tag: string) => void;
 }
@@ -54,6 +56,7 @@ const ThreatStatementCard: FC<ThreatStatementCardProps> = ({
   onRemoveTagFromStatement,
   onEditStatementStatus,
   onEditMetadata,
+  onUpdateStatement,
 }) => {
   const handleMoreActions: CancelableEventHandler<ButtonDropdownProps.ItemClickDetails> = useCallback(({ detail }) => {
     switch (detail.id) {
@@ -129,6 +132,8 @@ const ThreatStatementCard: FC<ThreatStatementCardProps> = ({
         editingStatement={statement}
         onEditStatementStatus={onEditStatementStatus}
         onEditMetadata={onEditMetadata}
+        onUpdateEntity={onUpdateStatement}
+        shareUnsavedEdits
       />
     </SpaceBetween>
   </GenericCard>);

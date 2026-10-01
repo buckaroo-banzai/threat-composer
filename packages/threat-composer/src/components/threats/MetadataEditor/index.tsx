@@ -17,13 +17,16 @@
 import ExpandableSection, { ExpandableSectionProps } from '@cloudscape-design/components/expandable-section';
 import Grid from '@cloudscape-design/components/grid';
 import { OptionDefinition } from '@cloudscape-design/components/internal/components/option/interfaces';
+import SpaceBetween from '@cloudscape-design/components/space-between';
 import { FC, useMemo, useState } from 'react';
 import { TemplateThreatStatement } from '../../../customTypes';
 import threatStatus from '../../../data/status/threatStatus.json';
 import expandablePanelHeaderStyles from '../../../styles/expandablePanelHeader';
+import { EntityUpdate } from '../../../utils/entityUpdates';
 import CommentsEdit from '../../generic/CommentsEdit';
 import StatusSelector from '../../generic/StatusSelector';
 import STRIDESELECTOR from '../../generic/STRIDESelector';
+import CustomMetadataEditor from '../CustomMetadataEditor';
 import PriorityEdit from '../PriorityEdit';
 
 
@@ -32,6 +35,8 @@ export interface MetadataEditorProps {
   editingStatement: TemplateThreatStatement;
   onEditStatementStatus: (statement: TemplateThreatStatement, status: string) => void;
   onEditMetadata: (statement: TemplateThreatStatement, key: string, value: string | string[] | undefined) => void;
+  onUpdateEntity?: (id: string, update: EntityUpdate) => void;
+  shareUnsavedEdits?: boolean;
 }
 
 const MetadataEditor: FC<MetadataEditorProps> = ({
@@ -39,6 +44,8 @@ const MetadataEditor: FC<MetadataEditorProps> = ({
   editingStatement,
   onEditStatementStatus,
   onEditMetadata,
+  onUpdateEntity,
+  shareUnsavedEdits = false,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const stride = useMemo(() => {
@@ -53,33 +60,43 @@ const MetadataEditor: FC<MetadataEditorProps> = ({
       expanded={expanded}
       onChange={({ detail }) => setExpanded(detail.expanded)}
     >
-      <Grid
-        gridDefinition={[
-          { colspan: { default: 12, xs: 3 } },
-          { colspan: { default: 12, xs: 3 } },
-          { colspan: { default: 12, xs: 6 } },
-          ...expanded ? [{ colspan: { default: 12, xs: 12 } }] : [],
-        ]}
-      >
-        <StatusSelector
-          selectedOption={editingStatement.status}
-          setSelectedOption={(option) => onEditStatementStatus(editingStatement, option)}
-          options={threatStatus as OptionDefinition[]}
-        />
-        <PriorityEdit
+      <SpaceBetween direction="vertical" size="s">
+        <Grid
+          gridDefinition={[
+            { colspan: { default: 12, xs: 3 } },
+            { colspan: { default: 12, xs: 3 } },
+            { colspan: { default: 12, xs: 6 } },
+            ...expanded ? [{ colspan: { default: 12, xs: 12 } }] : [],
+          ]}
+        >
+          <StatusSelector
+            selectedOption={editingStatement.status}
+            setSelectedOption={(option) => onEditStatementStatus(editingStatement, option)}
+            options={threatStatus as OptionDefinition[]}
+          />
+          <PriorityEdit
+            editingStatement={editingStatement}
+            onEditMetadata={onEditMetadata}
+          />
+          <STRIDESELECTOR
+            label='STRIDE'
+            selected={stride}
+            setSelected={(selected) => onEditMetadata(editingStatement, 'STRIDE', selected)}
+          />
+          {expanded && <CommentsEdit
+            entity={editingStatement}
+            onEditEntity={onEditMetadata}
+            onUpdateEntity={onUpdateEntity}
+            shareUnsavedEdits={shareUnsavedEdits}
+          />}
+        </Grid>
+        {onUpdateEntity && <CustomMetadataEditor
+          variant={variant}
           editingStatement={editingStatement}
-          onEditMetadata={onEditMetadata}
-        />
-        <STRIDESELECTOR
-          label='STRIDE'
-          selected={stride}
-          setSelected={(selected) => onEditMetadata(editingStatement, 'STRIDE', selected)}
-        />
-        {expanded && <CommentsEdit
-          entity={editingStatement}
-          onEditEntity={onEditMetadata}
+          onUpdateEntity={onUpdateEntity}
+          shareUnsavedEdits={shareUnsavedEdits}
         />}
-      </Grid>
+      </SpaceBetween>
     </ExpandableSection>
   );
 };

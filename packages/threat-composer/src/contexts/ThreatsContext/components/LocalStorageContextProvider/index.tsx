@@ -66,6 +66,7 @@ const ThreatsContextProviderInner: FC<PropsWithChildren<ThreatsContextProviderPr
     handlRemoveStatement,
     handleEditStatement,
     handleSaveStatement,
+    handleUpdateStatement,
     lenStatementList,
     editingStatementExist,
   } = useThreats(
@@ -113,6 +114,7 @@ const ThreatsContextProviderInner: FC<PropsWithChildren<ThreatsContextProviderPr
     removeStatement: handlRemoveStatement,
     editStatement: handleEditStatement,
     saveStatement: handleSaveStatement,
+    updateStatement: handleUpdateStatement,
     removeAllStatements: handleRemoveAllStatements,
     onDeleteWorkspace: handleDeleteWorkspace,
   }}>

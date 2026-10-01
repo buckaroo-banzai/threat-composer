@@ -47,6 +47,7 @@ const ThreatsContextProvider: FC<PropsWithChildren<ThreatsContextProviderProps &
     handlRemoveStatement,
     handleEditStatement,
     handleSaveStatement,
+    handleUpdateStatement,
   } = useThreats(
     composerMode,
     statementList,
@@ -79,6 +80,7 @@ const ThreatsContextProvider: FC<PropsWithChildren<ThreatsContextProviderProps &
     removeStatement: handlRemoveStatement,
     editStatement: handleEditStatement,
     saveStatement: handleSaveStatement,
+    updateStatement: handleUpdateStatement,
     removeAllStatements: handleRemoveAllStatements,
     onDeleteWorkspace: handleDeleteWorkspace,
   }}>

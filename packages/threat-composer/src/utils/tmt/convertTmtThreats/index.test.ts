@@ -133,8 +133,8 @@ describe('convertTmtThreats - over-length fields are surfaced, not truncated', (
     expect(unconvertible).toEqual([{ id: 1, reason: expect.stringContaining('exceeding the 50-character limit') }]);
   });
 
-  test('keeps an unbounded custom metadata value without truncation', () => {
-    const longValue = 'v'.repeat(5000);
+  test('keeps a custom metadata value at the value limit without truncation', () => {
+    const longValue = 'v'.repeat(100000);
     const model = makeModel({
       knowledgeBase: { threatTypes: {}, propertyLabels: { Foo: 'Foo Label' } },
       threats: [makeThreat({ id: 1, properties: { Title: 'a', Foo: longValue } })],
@@ -142,6 +142,38 @@ describe('convertTmtThreats - over-length fields are surfaced, not truncated', (
     const { threats, unconvertible } = convertTmtThreats(model);
     expect(unconvertible).toEqual([]);
     expect(meta(threats[0], 'custom:TMT Foo Label')).toBe(longValue);
+  });
+
+  test('surfaces a threat whose custom metadata value exceeds the value limit', () => {
+    const model = makeModel({
+      threats: [
+        makeThreat({ id: 1, properties: { Title: 'a', Foo: 'v'.repeat(100001) } }),
+        makeThreat({ id: 2, properties: { Title: 'ok' } }),
+      ],
+    });
+    const { threats, unconvertible } = convertTmtThreats(model);
+    expect(threats.map((t) => t.numericId)).toEqual([2]);
+    expect(unconvertible).toEqual([{
+      id: 1,
+      reason: 'Metadata field "custom:TMT Foo" value is 100001 characters, exceeding the 100000-character limit.',
+    }]);
+  });
+
+  test('surfaces a threat with more metadata fields than the field limit', () => {
+    const properties = (count: number) => Object.fromEntries([
+      ['Title', 'a'],
+      ...Array.from({ length: count }, (_, i) => [`P${i}`, 'v']),
+    ]);
+    // Each threat also gets 'custom:TMT Threat ID', so N extra properties yield N + 1 fields.
+    const model = makeModel({
+      threats: [
+        makeThreat({ id: 1, properties: properties(49) }),
+        makeThreat({ id: 2, properties: properties(50) }),
+      ],
+    });
+    const { threats, unconvertible } = convertTmtThreats(model);
+    expect(threats.map((t) => t.metadata?.length)).toEqual([50]);
+    expect(unconvertible).toEqual([{ id: 2, reason: 'Threat has 51 metadata fields, exceeding the 50-field limit.' }]);
   });
 });
 

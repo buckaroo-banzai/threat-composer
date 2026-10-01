@@ -21,6 +21,7 @@ import useExportImport, { PLACEHOLDER_EXCHANGE_DATA } from '../../../hooks/useEx
 import useRemoveData from '../../../hooks/useRemoveData';
 import convertToMarkdown from '../../../utils/convertToMarkdown';
 import { dataExchangeNeedsMigration, CURRENT_SCHEMA_VERSION } from '../../../utils/migrateDataExchange';
+import { applyUnsavedEdits, clearAllUnsavedEdits } from '../../../utils/unsavedEdits';
 
 /**
  * Export threat-composer functionalities via window object.
@@ -39,6 +40,7 @@ const WindowExporter: FC<PropsWithChildren<{}>> = ({ children }) => {
 
   const setWorkspaceData = useCallback(
     async (data: any) => {
+      clearAllUnsavedEdits();
       const incoming = data || PLACEHOLDER_EXCHANGE_DATA;
       const needsMigration = dataExchangeNeedsMigration(incoming);
       // A below-current-schema injected model is migrated in memory so the current UI can render
@@ -71,9 +73,9 @@ const WindowExporter: FC<PropsWithChildren<{}>> = ({ children }) => {
   );
 
   // While a migration awaits consent, round-trip the original document unchanged so a host's
-  // autosave cannot persist an upgraded schema.
+  // autosave cannot persist an upgraded schema. Otherwise include typing not yet saved to app state.
   const getCurrentWorkspaceData = useCallback(
-    () => pendingMigration ?? getWorkspaceData(),
+    () => pendingMigration ?? applyUnsavedEdits(getWorkspaceData()),
     [getWorkspaceData, pendingMigration],
   );
 
@@ -111,7 +113,10 @@ const WindowExporter: FC<PropsWithChildren<{}>> = ({ children }) => {
   }, [deleteWorkspace]);
 
   useEffect(() => {
-    window.threatcomposer.switchWorkspace = switchWorkspace;
+    window.threatcomposer.switchWorkspace = (...args: Parameters<typeof switchWorkspace>) => {
+      clearAllUnsavedEdits();
+      return switchWorkspace(...args);
+    };
   }, [switchWorkspace]);
 
   useEffect(() => {

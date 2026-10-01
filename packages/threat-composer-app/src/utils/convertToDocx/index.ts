@@ -15,7 +15,7 @@
  ******************************************************************************************************************** */
 import { DataExchangeFormat } from '@aws/threat-composer';
 import { Document, Packer } from 'docx';
-import { ORDERED_LIST_REF, DEFAULT_NUMBERINGS, SPACING, LIST_PARA_SPACING } from './config';
+import { ORDERED_LIST_REF, BULLET_LIST_REF, DEFAULT_NUMBERINGS, BULLET_NUMBERINGS, SPACING, LIST_PARA_SPACING } from './config';
 import getApplicationInfo from './getApplicationInfo';
 import { getApplicationName } from './getApplicationName';
 import getArchitecture from './getArchitecture';
@@ -52,10 +52,19 @@ const convertToDocx = async (data: DataExchangeFormat) => {
           reference: ORDERED_LIST_REF,
           levels: DEFAULT_NUMBERINGS,
         },
+        {
+          reference: BULLET_LIST_REF,
+          levels: BULLET_NUMBERINGS,
+        },
       ],
     },
     styles: {
       default: {
+        document: {
+          run: {
+            font: 'Aptos',
+          },
+        },
         title: {
           paragraph: {
             spacing: SPACING,

@@ -16,6 +16,7 @@
 import { useContext, createContext } from 'react';
 import { PerFieldExample, TemplateThreatStatement } from '../../customTypes';
 import threatStatementExamplesData from '../../data/threatStatementExamples.json';
+import { EntityUpdate } from '../../utils/entityUpdates';
 export type View = 'list' | 'editor';
 
 export type PerFieldExamplesType = {
@@ -50,6 +51,7 @@ export interface ThreatsContextApi {
   removeStatement: (id: string) => void;
   editStatement: (id: string) => void;
   saveStatement: (statement: TemplateThreatStatement) => void;
+  updateStatement: (id: string, update: EntityUpdate) => void;
   removeAllStatements: () => Promise<void>;
   onDeleteWorkspace: (workspaceId: string) => Promise<void>;
 }
@@ -67,6 +69,7 @@ const initialState: ThreatsContextApi = {
   addStatement: () => { },
   removeStatement: () => { },
   saveStatement: () => { },
+  updateStatement: () => { },
   editStatement: () => { },
   removeAllStatements: () => Promise.resolve(),
   onDeleteWorkspace: () => Promise.resolve(),

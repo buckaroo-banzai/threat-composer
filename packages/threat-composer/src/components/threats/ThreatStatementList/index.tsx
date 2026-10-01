@@ -105,6 +105,7 @@ const ThreatStatementList: FC<ThreatStatementListProps> = ({
     addStatement,
     editStatement,
     saveStatement,
+    updateStatement,
   } = useThreatsContext();
 
   const {
@@ -526,6 +527,7 @@ const ThreatStatementList: FC<ThreatStatementListProps> = ({
           onRemove={handleRemove}
           onEditInWizard={handleEditStatement}
           onEditMetadata={handleEditMetadata}
+          onUpdateStatement={updateStatement}
           onEditStatementStatus={handleUpdateStatementStatus}
           onAddTagToStatement={handleAddTagToStatement}
           onRemoveTagFromStatement={handleRemoveTagFromStatement}

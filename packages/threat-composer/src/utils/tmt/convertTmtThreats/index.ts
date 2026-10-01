@@ -19,6 +19,7 @@ import {
   LEVEL_MEDIUM,
   METADATA_KEY_PRIORITY,
   METADATA_KEY_STRIDE,
+  FREE_TEXT_INPUT_MAX_LENGTH,
   SINGLE_FIELD_INPUT_MAX_LENGTH,
   SINGLE_FIELD_INPUT_SMALL_MAX_LENGTH,
   THREAT_STATUS_IDENTIFIED,
@@ -47,6 +48,13 @@ export interface TmtThreatConversionResult {
 // TemplateThreatStatementSchema.statement and the custom-metadata key cap in MetadataSchemaThreats.
 const STATEMENT_MAX_LENGTH = SINGLE_FIELD_INPUT_MAX_LENGTH * 7;
 const METADATA_KEY_MAX_LENGTH = SINGLE_FIELD_INPUT_SMALL_MAX_LENGTH;
+
+// Not schema caps: bound untrusted input so a crafted file cannot stall rendering. Real threats carry at most ~15 entries.
+const METADATA_VALUE_MAX_LENGTH = FREE_TEXT_INPUT_MAX_LENGTH;
+const METADATA_MAX_ENTRIES = 50;
+
+const longestValueLength = (entry: MetadataEntry) =>
+  Math.max(...(Array.isArray(entry.value) ? entry.value : [entry.value]).map((v) => v.length));
 
 const STATUS_BY_STATE: Record<string, string> = {
   Mitigated: THREAT_STATUS_RESOLVED,
@@ -87,7 +95,7 @@ const resolveStatement = (threat: TmtThreat, threatType?: TmtThreatType): string
 /**
  * Converts the threats of a parsed TMT model into Threat Composer threats, following the documented
  * '.tm7' -> Threat Composer mapping. A threat that cannot be faithfully imported (no resolvable
- * statement, or a field that would exceed a Threat Composer schema limit) is not silently dropped or
+ * statement, or a field or field count over a size limit) is not silently dropped or
  * truncated: it is collected in 'unconvertible' with a clear reason for the import flow to present as
  * an abort/ignore decision. Softer issues (unknown state, non-STRIDE category, duplicate id) are
  * returned as non-blocking warnings on the threats that were converted.
@@ -176,6 +184,23 @@ export const convertTmtThreats = (model: TmtModel): TmtThreatConversionResult =>
       unconvertible.push({
         id: threat.id,
         reason: `Metadata field name "${overLongKey.key}" is ${overLongKey.key.length} characters, exceeding the ${METADATA_KEY_MAX_LENGTH}-character limit.`,
+      });
+      continue;
+    }
+
+    if (metadata.length > METADATA_MAX_ENTRIES) {
+      unconvertible.push({
+        id: threat.id,
+        reason: `Threat has ${metadata.length} metadata fields, exceeding the ${METADATA_MAX_ENTRIES}-field limit.`,
+      });
+      continue;
+    }
+
+    const overLongValue = metadata.find((entry) => longestValueLength(entry) > METADATA_VALUE_MAX_LENGTH);
+    if (overLongValue) {
+      unconvertible.push({
+        id: threat.id,
+        reason: `Metadata field "${overLongValue.key}" value is ${longestValueLength(overLongValue)} characters, exceeding the ${METADATA_VALUE_MAX_LENGTH}-character limit.`,
       });
       continue;
     }

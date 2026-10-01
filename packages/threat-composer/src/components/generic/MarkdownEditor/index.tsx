@@ -55,6 +55,7 @@ const styles = {
 
 export interface MarkdownEditorProps extends FormFieldProps {
   onChange: (value: string) => void;
+  onBlur?: () => void;
   value: string;
   validateData?: TextAreaProps['validateData'];
   allowedHeadingLevels?: HEADING_LEVEL[];
@@ -66,6 +67,7 @@ const ALLOWED_HEADING_LEVELS: HEADING_LEVEL[] = [3, 4, 5, 6];
 const MarkdownEditor: FC<MarkdownEditorProps> = ({
   value,
   onChange,
+  onBlur,
   validateData,
   allowedHeadingLevels = ALLOWED_HEADING_LEVELS,
   focus = false,
@@ -92,6 +94,7 @@ const MarkdownEditor: FC<MarkdownEditorProps> = ({
         autoFocus={focus}
         suppressHtmlProcessing={true}
         onChange={handleChange}
+        onBlur={onBlur ? () => onBlur() : undefined}
         toMarkdownOptions={{
           emphasis: '_',
           bullet: '-',

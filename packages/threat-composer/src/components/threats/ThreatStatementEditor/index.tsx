@@ -37,6 +37,7 @@ import threatFieldData from '../../../data/threatFieldData';
 import threatStatementExamples from '../../../data/threatStatementExamples.json';
 import threatStatementFormat from '../../../data/threatStatementFormat';
 import useEditMetadata from '../../../hooks/useEditMetadata';
+import { EntityUpdate } from '../../../utils/entityUpdates';
 import getMetadata from '../../../utils/getMetadata';
 import getNewMitigation from '../../../utils/getNewMitigation';
 import getNewThreatStatement from '../../../utils/getNewThreatStatement';
@@ -363,6 +364,9 @@ export const ThreatStatementEditorInner: FC<ThreatStatementEditorProps & { editi
   }, [setLinkedMitigationIds, mitigationList, saveMitigation]);
 
   const handleEditMetadata = useEditMetadata(setEditingStatement);
+  const handleUpdateEditingStatement = useCallback((id: string, update: EntityUpdate) => {
+    setEditingStatement(prev => (prev && prev.id === id ? update(prev) : prev));
+  }, [setEditingStatement]);
 
   const [threatPackId, threatPackThreatId] = useMemo(() => {
     if (props.threatPackId && props.threatPackThreatId) {
@@ -462,6 +466,7 @@ export const ThreatStatementEditorInner: FC<ThreatStatementEditorProps & { editi
               status,
             } as TemplateThreatStatement)))}
             onEditMetadata={handleEditMetadata}
+            onUpdateEntity={handleUpdateEditingStatement}
           />
         </div>}
         {isExampleVisible && <FullExamples ref={fullExamplesRef} onClick={handleExampleClicked} />}

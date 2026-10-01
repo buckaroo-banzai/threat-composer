@@ -21,7 +21,24 @@ import {
 } from 'docx';
 
 export const ORDERED_LIST_REF = 'ordered';
+export const BULLET_LIST_REF = 'bullet';
 export const INDENT = 0.5;
+
+// Word's default bullet: a Symbol-font round bullet at the standard indent (the 'bullet' shorthand renders oversized).
+export const BULLET_NUMBERINGS: ILevelsOptions[] = [
+  {
+    level: 0,
+    format: LevelFormat.BULLET,
+    text: '\uF0B7',
+    alignment: AlignmentType.LEFT,
+    style: {
+      run: { font: 'Symbol' },
+      paragraph: {
+        indent: { left: convertInchesToTwip(0.5), hanging: convertInchesToTwip(0.25) },
+      },
+    },
+  },
+];
 
 export const DEFAULT_NUMBERINGS: ILevelsOptions[] = [
   {
