@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
-import { useCallback, FC, PropsWithChildren, useEffect } from 'react';
+import { useCallback, FC, PropsWithChildren, useEffect, useRef } from 'react';
 import { useWorkspacesContext } from '../../../contexts';
 import { useMigrationConsentContext } from '../../../contexts/MigrationConsentContext';
 import { DataExchangeFormat } from '../../../customTypes';
@@ -37,6 +37,9 @@ const WindowExporter: FC<PropsWithChildren<{}>> = ({ children }) => {
   } = useWorkspacesContext();
   const { deleteWorkspace } = useRemoveData();
   const { pendingMigration, setPendingMigration, requestConsent } = useMigrationConsentContext();
+  // setWorkspaceData outlives the render that created it, so it must read the data loaded since.
+  const getWorkspaceDataRef = useRef(getWorkspaceData);
+  getWorkspaceDataRef.current = getWorkspaceData;
 
   const setWorkspaceData = useCallback(
     async (data: any) => {
@@ -64,12 +67,12 @@ const WindowExporter: FC<PropsWithChildren<{}>> = ({ children }) => {
           // Persist the upgrade to disk immediately. Deferred so the host has registered its
           // 'save' listener, which it does only after setCurrentWorkspaceData resolves.
           setTimeout(() => {
-            window.threatcomposer.dispatchEvent(new CustomEvent('save', { detail: getWorkspaceData() }));
+            window.threatcomposer.dispatchEvent(new CustomEvent('save', { detail: getWorkspaceDataRef.current() }));
           }, 0);
         }
       }
     },
-    [parseImportedData, importData, setPendingMigration, requestConsent, currentWorkspace, getWorkspaceData],
+    [parseImportedData, importData, setPendingMigration, requestConsent, currentWorkspace],
   );
 
   // While a migration awaits consent, round-trip the original document unchanged so a host's

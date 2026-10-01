@@ -24,7 +24,7 @@ const asEnvironmentClass = (mod) => mod.default || mod;
 const NodeEnvironment = asEnvironmentClass(require('jest-environment-node'));
 const JsdomEnvironment = asEnvironmentClass(require('jest-environment-jsdom'));
 
-const JSDOM_TEST_PATTERNS = [/extractTmtReportDiagrams/, /importTmtModel/];
+const JSDOM_TEST_PATTERNS = [/extractTmtReportDiagrams/, /importTmtModel/, /WindowExporter/];
 // jsdom's crypto (unlike Node and real browsers) does not implement randomUUID; add it so code that
 // relies on it can be exercised in jsdom without changing production behavior.
 const { randomUUID } = require('crypto');
