@@ -23,15 +23,13 @@ import SpaceBetween from '@cloudscape-design/components/space-between';
 import TextContent from '@cloudscape-design/components/text-content';
 import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import ImportErrors from './components/ImportErrors';
+import { MAX_TMT_FILE_BYTES } from '../../../configs';
 import { DataExchangeFormat } from '../../../customTypes';
 import useImportExport from '../../../hooks/useExportImport';
 import { importTmtModel, TmtImportResult } from '../../../utils/tmt/importTmtModel';
 import FileUpload from '../../generic/FileUpload';
 
 type ImportMode = 'json' | 'tmt';
-
-// Reject an oversized file before reading it into memory.
-const MAX_TMT_FILE_BYTES = 20 * 1024 * 1024;
 
 export interface FileImportProps {
   composerMode: string;
@@ -64,6 +62,15 @@ const FileImport: FC<FileImportProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingPercentage, setLoadingPercentage] = useState(0);
   const { parseImportedData } = useImportExport();
+
+  // Discards any parse result, error, and errors overlay; the selected files are kept.
+  const resetImportState = useCallback(() => {
+    setData(undefined);
+    setTmtResult(undefined);
+    setErrorsVisible(false);
+    setPendingAction(null);
+    setError('');
+  }, []);
 
   const handleImport = useCallback((files: File[]) => {
     setError('');
@@ -103,13 +110,10 @@ const FileImport: FC<FileImportProps> = ({
     setSelectedFiles([]);
     setTm7Files([]);
     setReportFiles([]);
-    setData(undefined);
-    setTmtResult(undefined);
-    setErrorsVisible(false);
-    setPendingAction(null);
+    resetImportState();
     setVisible(false);
     onPreviewClose?.();
-  }, [onImport, setVisible, onPreviewClose]);
+  }, [onImport, setVisible, onPreviewClose, resetImportState]);
 
   // Parse the selected TMT files on demand (triggered by Import or Preview, never by file selection).
   // Sets data/tmtResult and returns them; returns undefined on a blocking error.
@@ -176,24 +180,16 @@ const FileImport: FC<FileImportProps> = ({
 
   useEffect(() => {
     // Selecting/changing TMT files does not parse (deferred to Import); discard any prior parse result.
-    setData(undefined);
-    setTmtResult(undefined);
-    setErrorsVisible(false);
-    setPendingAction(null);
-    setError('');
-  }, [tm7Files, reportFiles]);
+    resetImportState();
+  }, [tm7Files, reportFiles, resetImportState]);
 
   const handleModeChange = useCallback((mode: ImportMode) => {
     setImportMode(mode);
     setSelectedFiles([]);
     setTm7Files([]);
     setReportFiles([]);
-    setData(undefined);
-    setTmtResult(undefined);
-    setErrorsVisible(false);
-    setPendingAction(null);
-    setError('');
-  }, []);
+    resetImportState();
+  }, [resetImportState]);
 
   const handleJsonPreview = useCallback(() => {
     data && onPreview?.(data);

@@ -14,10 +14,10 @@ Date: 2026-09-30. Branch head: '838c581'.
 | ID | Recommendation | Category | Impact | Confidence |
 | --- | --- | --- | --- | --- |
 | R1 | Fix the 'save' after **Upgrade** in the IDE path: it sends the workspace as it was before the import | Bug (data loss) | High | Fixed 2026-10-01 ([ace4898](https://github.com/buckaroo-banzai/threat-composer/commit/ace4898b24bf177849e80c57df39b7a74e166ba5)) |
-| R2 | Define the schema version (1.1) once instead of three times | Simplicity | Medium | Fixed 2026-10-01 |
-| R3 | Use a single name for the migration entry point, and drop the repeated version check | Simplicity | Medium | Fixed 2026-10-01 |
+| R2 | Define the schema version (1.1) once instead of three times | Simplicity | Medium | Fixed 2026-10-01 ([3e8c8b0](https://github.com/buckaroo-banzai/threat-composer/commit/3e8c8b05437ba6affba2da17373c76995cce1eaa)) |
+| R3 | Use a single name for the migration entry point, and drop the repeated version check | Simplicity | Medium | Fixed 2026-10-01 ([3e8c8b0](https://github.com/buckaroo-banzai/threat-composer/commit/3e8c8b05437ba6affba2da17373c76995cce1eaa)) |
 | R4 | Extract the shared held-edit logic of 'CommentsEdit' and 'CustomMetadataEditor' | Simplicity | Medium | Verified + Judgment |
-| R5 | Reset the TMT import state in one place in 'FileImport' | Simplicity | Medium | Verified |
+| R5 | Reset the TMT import state in one place in 'FileImport' | Simplicity | Medium | Fixed 2026-10-01 |
 | R6 | Share the per-threat report fields between the Markdown and Word exports | Simplicity | Medium | Verified + Judgment |
 | R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Judgment |
 | R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Verified |
@@ -57,7 +57,7 @@ I recommend (a), followed by a real VS Code check: open a 1.0 file, choose **Upg
 
 ### R2: The schema version is hard-coded three times (Medium, Verified)
 
-**Status:** fixed 2026-10-01. 'CURRENT_SCHEMA_VERSION' is defined once, in 'src/configs/constants.ts'.
+**Status:** fixed 2026-10-01 in commit [3e8c8b0](https://github.com/buckaroo-banzai/threat-composer/commit/3e8c8b05437ba6affba2da17373c76995cce1eaa). 'CURRENT_SCHEMA_VERSION' is defined once, in 'src/configs/constants.ts'.
 
 **Where:**
 - [useExportImport/index.ts](../packages/threat-composer/src/hooks/useExportImport/index.ts#L35) has 'const SCHEMA_VERSION = 1.1'.
@@ -70,7 +70,7 @@ I recommend (a), followed by a real VS Code check: open a 1.0 file, choose **Upg
 
 ### R3: Two names for one migration entry point, and a repeated check (Medium, Verified)
 
-**Status:** fixed 2026-10-01. By your decision, the single name is 'migrateToCurrentSchema' (module folder renamed to match), and its input type is now 'UnmigratedDataExchangeFormat'. The supported-version check is kept only in the migration function, which every load path calls. Three tests that duplicated others under the old second name were removed. The links below point to the old file locations.
+**Status:** fixed 2026-10-01 in commit [3e8c8b0](https://github.com/buckaroo-banzai/threat-composer/commit/3e8c8b05437ba6affba2da17373c76995cce1eaa). By your decision, the single name is 'migrateToCurrentSchema' (module folder renamed to match), and its input type is now 'UnmigratedDataExchangeFormat'. The supported-version check is kept only in the migration function, which every load path calls. Three tests that duplicated others under the old second name were removed. The links below point to the old file locations.
 
 **Where:**
 - 'migrateToCurrent' ([migrateDataExchange/index.ts](../packages/threat-composer/src/utils/migrateDataExchange/index.ts#L111)) and the default export 'migrateDataExchange' ([line 128](../packages/threat-composer/src/utils/migrateDataExchange/index.ts#L128)) are the same function under two names. Production code imports the default; only the tests use 'migrateToCurrent'.
@@ -95,6 +95,8 @@ I recommend (a), followed by a real VS Code check: open a 1.0 file, choose **Upg
 **Suggested change:** extract one hook, given the editor key, the threat, a serializer for the stored value, and an 'EntityUpdate' factory, that returns 'edit(value)' and 'save()'. The name needs discussion; one option is 'useHeldThreatEdit'. This is a refactor of working, manually verified behavior, so it needs the same manual browser and VS Code checks afterwards.
 
 ### R5: 'FileImport' resets TMT state in three places (Medium, Verified)
+
+**Status:** fixed 2026-10-01. 'resetImportState()' clears the parse result, error, and errors overlay; the two places that also clear the selected files still do so themselves, because clearing the files from the file-change handler would trigger that handler again. By your decision, the four TMT import size limits also moved into 'src/configs/constants.ts', next to the project's other input limits.
 
 **Where:** 'finishImport' ([FileImport/index.tsx](../packages/threat-composer/src/components/workspaces/FileImport/index.tsx#L102)), the file-change effect ([line 178](../packages/threat-composer/src/components/workspaces/FileImport/index.tsx#L178)), and 'handleModeChange' ([line 187](../packages/threat-composer/src/components/workspaces/FileImport/index.tsx#L187)). Each clears the same five or six state variables by hand.
 

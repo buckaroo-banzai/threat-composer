@@ -13,6 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
+import { MAX_TMT_DIAGRAM_IMAGE_BYTES, MAX_TMT_REPORT_CHARS } from '../../../configs';
 import { TmtDrawingSurface } from '../tmtModel';
 
 // A DFD diagram image extracted from a TMT Full Report, matched to a parsed '.tm7' drawing surface.
@@ -21,10 +22,6 @@ export interface TmtReportDiagram {
   name: string;
   image: string; // full 'data:image/png;base64,...' URL
 }
-
-// Upper bounds on untrusted input.
-const MAX_REPORT_CHARS = 50_000_000;
-const MAX_DIAGRAM_IMAGE_BYTES = 10_000_000;
 
 const PNG_DATA_URL_PREFIX = 'data:image/png;base64,';
 const DIAGRAM_HEADING_PREFIX = 'Diagram:';
@@ -70,8 +67,8 @@ export const extractTmtReportDiagrams = (
   surfaces: TmtDrawingSurface[],
   options: { maxChars?: number; maxImageBytes?: number } = {},
 ): TmtReportDiagram[] => {
-  const maxChars = options.maxChars ?? MAX_REPORT_CHARS;
-  const maxImageBytes = options.maxImageBytes ?? MAX_DIAGRAM_IMAGE_BYTES;
+  const maxChars = options.maxChars ?? MAX_TMT_REPORT_CHARS;
+  const maxImageBytes = options.maxImageBytes ?? MAX_TMT_DIAGRAM_IMAGE_BYTES;
 
   if (typeof html !== 'string' || html.trim().length === 0) {
     throw new Error('Empty Full Report HTML input');

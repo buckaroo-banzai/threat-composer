@@ -14,11 +14,11 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import { MAX_TM7_CHARS } from '../../../configs';
 import { TmtDrawingSurface, TmtModel, TmtNote, TmtThreat, TmtThreatType } from '../tmtModel';
 
 const TMT_MODEL_NAMESPACE = 'http://schemas.datacontract.org/2004/07/ThreatModeling.Model';
 const SUPPORTED_VERSION = '4.3';
-const MAX_TM7_CHARS = 50 * 1024 * 1024; // guard oversized untrusted input (DoS)
 
 const toArray = <T>(value: T | T[] | undefined | null): T[] =>
   value == null ? [] : Array.isArray(value) ? value : [value];
