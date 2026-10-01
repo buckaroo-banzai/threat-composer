@@ -20,6 +20,7 @@ const makeModel = (over: Partial<TmtModel>): TmtModel => ({
   version: '4.3',
   metadata: {},
   surfaces: [],
+  elementNames: {},
   threats: [],
   notes: [],
   knowledgeBase: { threatTypes: {}, propertyLabels: {} },

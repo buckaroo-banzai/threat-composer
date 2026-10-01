@@ -53,6 +53,23 @@ describe('parseTmtModel - Sample_Threat_Model.tm7 (single DFD)', () => {
     expect(Object.keys(model.knowledgeBase.threatTypes).length).toBeGreaterThan(0);
     expect(Object.keys(model.knowledgeBase.propertyLabels).length).toBeGreaterThan(0);
   });
+
+  test('extracts DFD element names by GUID', () => {
+    expect(model.elementNames['41cb799f-434b-4b35-bd8e-8970bb985ec9']).toBe('Generic External Interactor');
+  });
+});
+
+describe.each([
+  'Sample_Threat_Model.tm7',
+  'Sample_Threat_Model_Multiple_DFDs.tm7',
+  'ContosoCast Threat Model Fully Labeled with AI.tm7',
+])('parseTmtModel - %s element names', (name) => {
+  test('resolves the source, target, and flow of every threat to a name', () => {
+    const model = parseTmtModel(fixture(name));
+    const unresolved = model.threats.flatMap((t) => [t.sourceGuid, t.targetGuid, t.flowGuid])
+      .filter((guid) => guid && !model.elementNames[guid]);
+    expect(unresolved).toEqual([]);
+  });
 });
 
 describe('parseTmtModel - Sample_Threat_Model_Multiple_DFDs.tm7 (multiple DFDs)', () => {
@@ -101,6 +118,18 @@ describe('parseTmtModel - minimal valid model', () => {
     ]);
     expect(model.metadata.threatModelName).toBe('My Model');
     expect(model.threats).toEqual([]);
+    expect(model.elementNames).toEqual({});
+  });
+
+  test('keeps an element named by an untrusted __proto__ GUID as plain data', () => {
+    const xml = `<ThreatModel xmlns="${NS}"><DrawingSurfaceList><DrawingSurfaceModel><Guid>s</Guid><Header>D</Header>`
+      + '<Borders><KeyValueOfguidanyType><Key>__proto__</Key><Value><Guid>__proto__</Guid><Properties>'
+      + '<anyType><DisplayName>Name</DisplayName><Value>Evil</Value></anyType></Properties></Value>'
+      + '</KeyValueOfguidanyType></Borders></DrawingSurfaceModel></DrawingSurfaceList><Version>4.3</Version></ThreatModel>';
+    const parsed = parseTmtModel(xml);
+    expect(parsed.elementNames.__proto__).toBe('Evil');
+    expect(({} as Record<string, unknown>).Evil).toBeUndefined();
+    expect(Object.getPrototypeOf(parsed.elementNames)).toBeNull();
   });
 });
 

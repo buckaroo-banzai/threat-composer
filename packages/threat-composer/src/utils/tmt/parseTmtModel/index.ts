@@ -70,15 +70,11 @@ const dictionaryEntries = (dict: any, entryPrefix: string): Array<{ Key: any; Va
   return entryKey ? toArray(dict[entryKey]) : [];
 };
 
-const surfaceName = (surface: any): string => {
-  const header = optText(surface.Header);
-  if (header) {
-    return header;
-  }
-  // Fall back to the StringDisplayAttribute whose DisplayName is 'Name'.
-  const nameAttr = toArray(surface.Properties?.anyType).find((attr: any) => text(attr.DisplayName) === 'Name');
-  return optText(nameAttr?.Value) || '';
-};
+// The StringDisplayAttribute whose DisplayName is 'Name' (surfaces, stencil elements, and connectors).
+const nameProperty = (node: any): string | undefined =>
+  optText(toArray(node?.Properties?.anyType).find((attr: any) => text(attr.DisplayName) === 'Name')?.Value);
+
+const surfaceName = (surface: any): string => optText(surface.Header) || nameProperty(surface) || '';
 
 const surfaceIsEmpty = (surface: any): boolean =>
   dictionaryEntries(surface.Borders, 'KeyValueOfguidanyType').length === 0 &&
@@ -144,7 +140,8 @@ export const parseTmtModel = (xml: string, options: { maxChars?: number } = {}):
     throw new Error(`Unsupported TMT model version: ${version ?? '(none)'} (expected ${SUPPORTED_VERSION})`);
   }
 
-  const surfaces: TmtDrawingSurface[] = toArray(root.DrawingSurfaceList?.DrawingSurfaceModel).map(
+  const surfaceModels = toArray(root.DrawingSurfaceList?.DrawingSurfaceModel);
+  const surfaces: TmtDrawingSurface[] = surfaceModels.map(
     (surface: any, index: number) => ({
       guid: text(surface.Guid) || '',
       name: surfaceName(surface),
@@ -152,6 +149,21 @@ export const parseTmtModel = (xml: string, options: { maxChars?: number } = {}):
       order: index,
     }),
   );
+
+  // Untrusted GUIDs become object keys here; use a null-prototype map to avoid pollution.
+  const elementNames: Record<string, string> = Object.create(null);
+  for (const surface of surfaceModels) {
+    for (const entry of [
+      ...dictionaryEntries(surface.Borders, 'KeyValueOfguidanyType'),
+      ...dictionaryEntries(surface.Lines, 'KeyValueOfguidanyType'),
+    ]) {
+      const guid = optText(entry.Value?.Guid) ?? optText(entry.Key);
+      const name = nameProperty(entry.Value);
+      if (guid && name) {
+        elementNames[guid] = name;
+      }
+    }
+  }
 
   const threats: TmtThreat[] = dictionaryEntries(root.ThreatInstances, 'KeyValueOfstringThreat').map((entry: any) => {
     const value = entry.Value || {};
@@ -229,6 +241,7 @@ export const parseTmtModel = (xml: string, options: { maxChars?: number } = {}):
     version,
     metadata,
     surfaces,
+    elementNames,
     threats,
     notes,
     knowledgeBase: { threatTypes, propertyLabels },

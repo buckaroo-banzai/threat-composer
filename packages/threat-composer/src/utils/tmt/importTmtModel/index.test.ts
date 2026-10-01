@@ -80,22 +80,21 @@ describe('importTmtModel - workspace name', () => {
 });
 
 describe('importTmtModel - error fixtures', () => {
-  test('reports the unconvertible threats from the (TMT-openable) "with errors" model', () => {
+  test('reports fallback warnings and the unconvertible threat from the (TMT-openable) "with errors" model', () => {
     const result = importTmtModel(
       fixture('Sample_Threat_Model_With_Errors.tm7'),
       fixture('Sample_Threat_Model_With_Errors.htm'),
       'Sample_Threat_Model_With_Errors.tm7',
     );
-    expect(result.data.threats).toHaveLength(27);
+    expect(result.data.threats).toHaveLength(28);
     expect(result.data.dataflow?.diagrams?.map((d) => d.name)).toEqual(['Diagram 1']);
-    expect(result.warnings).toEqual([]);
-    expect(result.unconvertible).toHaveLength(2);
-    expect(result.unconvertible).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: 7, reason: expect.stringContaining('No resolvable threat statement') }),
-        expect.objectContaining({ id: 14, reason: expect.stringContaining('exceeding the 1400-character limit') }),
-      ]),
-    );
+    expect(result.warnings).toEqual([
+      'TMT threat 7: no curated template mapping matched its title and description, so its statement is the TMT description as written',
+      'TMT threat 14: no curated template mapping matched its title and description, so its statement is the TMT description as written',
+    ]);
+    expect(result.unconvertible).toEqual([
+      { id: 35, reason: expect.stringContaining('"custom:TMT ZZ_Error_Fixture_Property_Name_Over_The_Limit" is 56 characters') },
+    ]);
     // The convertible threats still assemble into a schema-valid document.
     expect(() => DataExchangeFormatSchema.parse(result.data)).not.toThrow();
   });
