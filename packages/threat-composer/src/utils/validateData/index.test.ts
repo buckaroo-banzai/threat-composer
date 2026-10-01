@@ -19,7 +19,7 @@ import genAIChatbot from '../../data/workspaceExamples/GenAIChatbot.tc.json';
 import threatComposer from '../../data/workspaceExamples/ThreatComposer.tc.json';
 import migrateDataExchange from '../migrateDataExchange';
 
-// Both schema versions coexist (US-1-T1): raw 1.0 fixtures document the legacy
+// Both schema versions coexist: raw 1.0 fixtures document the legacy
 // on-disk shape and are imported into 1.1 via migrateDataExchange before strict
 // validation. validateData itself validates against the current (1.1) schema.
 describe('validateData - schema 1.0 and 1.1', () => {

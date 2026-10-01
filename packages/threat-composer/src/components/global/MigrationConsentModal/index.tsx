@@ -31,7 +31,7 @@ const MigrationConsentModal: FC = () => {
   }
 
   const { workspaceName, subject, fromSchemaVersion, toSchemaVersion } = pendingRequest;
-  // TODO: (US-3-T3): revisit version display when schema versions move off floats.
+  // TODO: US-3-T3 revisit version display when schema versions move off floats.
   const formatVersion = (v: number) => `v${v.toFixed(1)}`;
   const label = subject ?? (workspaceName ? `The workspace "${workspaceName}"` : 'This threat model');
 

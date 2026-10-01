@@ -77,7 +77,7 @@ export const dataflowInfoNeedsMigration = (dataflow?: DataflowInfo | LegacyDataf
 // Single-step schema migrations. Each entry migrates a document from its key version
 // to `to` (the immediately following version). Add a new schema version by registering
 // one more single-step entry; migrateToCurrent composes the chain, so no call site changes.
-// TODO: (US-3-T3): retire the float version keys (1.0/1.1) in favour of integer/semver.
+// TODO: US-3-T3 retire the float version keys (1.0/1.1) in favor of integer/semver.
 interface SchemaMigrationStep {
   to: number;
   migrate: (input: DataExchangeMigrationInput) => DataExchangeMigrationInput;

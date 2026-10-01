@@ -131,7 +131,7 @@ describe('DataExchangeFormatSchema - schema 1.1 acceptance', () => {
   });
 });
 
-describe('migrateDataflowInfo - dataflow-only migration (US-1-T2)', () => {
+describe('migrateDataflowInfo - dataflow-only migration', () => {
   test('moves a legacy image into a one-item diagrams array and strips image', () => {
     const result = migrateDataflowInfo({ description: 'desc', image: SAMPLE_IMAGE });
 
@@ -184,7 +184,7 @@ describe('migrateDataflowInfo - dataflow-only migration (US-1-T2)', () => {
   });
 });
 
-describe('dataflowInfoNeedsMigration - legacy 1.0 detection (US-1-T2)', () => {
+describe('dataflowInfoNeedsMigration - legacy 1.0 detection', () => {
   test('detects a legacy dataflow that carries an image', () => {
     expect(dataflowInfoNeedsMigration({ description: 'desc', image: SAMPLE_IMAGE })).toBe(true);
   });
@@ -210,7 +210,7 @@ describe('dataflowInfoNeedsMigration - legacy 1.0 detection (US-1-T2)', () => {
   });
 });
 
-describe('dataExchangeNeedsMigration - ingestion consent gate (US-1-T7)', () => {
+describe('dataExchangeNeedsMigration - ingestion consent gate', () => {
   test('flags a supported below-current schema (1.0)', () => {
     expect(dataExchangeNeedsMigration({ schema: 1.0 })).toBe(true);
   });

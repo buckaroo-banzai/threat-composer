@@ -30,8 +30,7 @@ import FileUpload from '../../generic/FileUpload';
 
 type ImportMode = 'json' | 'tmt';
 
-// Fail-fast size guard (SDL SystemsADM.10027): reject a .tm7/report before reading it into memory.
-// Real fixtures are <2MB; 20MB is a generous ceiling below the downstream ~50M-char caps, tuned in US-4-T1.
+// Reject an oversized file before reading it into memory. Real models and reports are under 2 MB.
 const MAX_TMT_FILE_BYTES = 20 * 1024 * 1024;
 
 export interface FileImportProps {

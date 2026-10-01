@@ -22,12 +22,12 @@ Date: 2026-09-30. Branch head: '838c581'.
 | R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Judgment |
 | R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Verified |
 | R9 | Trim TMT surface names once, at parse time | Simplicity | Low | Verified |
-| R10 | Fix comments that break project rules (internal SDL ID, untagged forward reference, TODO format, spelling) | Comments | Low | Verified |
+| R10 | Fix comments that break project rules (internal SDL ID, untagged forward reference, TODO format, spelling) | Comments | Low | Fixed 2026-10-01 |
 | R11 | 'ImportErrors': duplicate React keys, a duplicated prop type, and wording when there are only warnings | Bug / Types | Low | Verified |
 | R12 | Remove two avoidable type casts and an 'any[]' | Types | Low | Verified |
-| R13 | Review the image-fetch guard's Microsoft-specific blocked ranges | Security / project fit | Low | Judgment |
+| R13 | Review the image-fetch guard's Microsoft-specific blocked ranges | Security / project fit | Low | Declined 2026-10-01: ranges kept because the problem also exists in other enterprise environments |
 | R14 | Revoke the object URL created for each exported image | Bug (memory) | Low | Verified |
-| R15 | Remove internal story IDs from test names | Tests | Low | Judgment |
+| R15 | Remove internal story IDs from test names | Tests | Low | Fixed 2026-10-01 |
 
 Overall, the branch is in good shape. The import pipeline is layered cleanly: parse, then extract the report diagrams, then convert the threats, then assemble the model, then the standard sanitize, migrate, and validate step. Untrusted input is handled carefully, and tests cover hostile input and real fixtures. R1 is the only finding with user impact. Most of the rest remove duplication that has built up across user stories.
 
@@ -134,6 +134,8 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R10: Comments that break project rules (Low, Verified)
 
+**Status:** fixed 2026-10-01. The same 'TODO' format was also fixed in 'MigrationConsentModal'.
+
 - [FileImport/index.tsx](../packages/threat-composer/src/components/workspaces/FileImport/index.tsx#L33-L35) cites an internal SDL requirement ID and "tuned in US-4-T1". For this open-source project, describe the reason instead: avoid reading an oversized file into memory.
 - [extractTmtReportDiagrams/index.ts](../packages/threat-composer/src/utils/tmt/extractTmtReportDiagrams/index.ts#L25) says "calibrate against real report sizes in US-4-T1". That is either a 'TODO: ' item or stale, since US-4-T1 is done.
 - [migrateDataExchange/index.ts](../packages/threat-composer/src/utils/migrateDataExchange/index.ts#L80) uses 'TODO: (US-3-T3):' rather than the agreed 'TODO: US-3-T3 ...', and the British spelling "favour".
@@ -161,6 +163,8 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 **Suggested change:** decide whether to keep these two Microsoft-specific entries.
 
+**Decision (2026-10-01): keep both ranges; no change.** Microsoft uses these ranges, but other enterprise environments have the same problem, so they are not Microsoft-specific. This confirms the earlier decision to keep them. The "Microsoft-specific" and "arbitrary" wording above was this review's assessment, which the decision overrides.
+
 ### R14: Object URL never revoked (Low, Verified)
 
 **Where:** [fetchImage.ts](../packages/threat-composer-app/src/utils/convertToDocx/fetchImage.ts#L66).
@@ -170,6 +174,8 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 **Suggested change:** call 'URL.revokeObjectURL' in 'onload' and 'onerror'.
 
 ### R15: Story IDs in test names (Low, Judgment)
+
+**Status:** fixed 2026-10-01.
 
 Several 'describe' names embed internal plan IDs, for example "(US-1-T2)" and "(US-1-T5 / US-2)". If the branch is offered upstream, these refer to a plan that upstream doesn't have. Consider plain behavior descriptions instead.
 
@@ -208,4 +214,4 @@ Several 'describe' names embed internal plan IDs, for example "(US-1-T2)" and "(
 2. **R10, R11, R14** (small, local fixes).
 3. **R2, R3, R5** (small simplifications with low risk).
 4. **R4, R6, R7** (larger refactors; agree on the design first, then retest manually).
-5. **R8, R9, R12, R13, R15**, as you choose.
+5. **R8, R9, R12, R15**, as you choose. R13 was declined (see its decision).
