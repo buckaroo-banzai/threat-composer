@@ -22,12 +22,12 @@ Date: 2026-09-30. Branch head: '838c581'.
 | R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Judgment |
 | R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Verified |
 | R9 | Trim TMT surface names once, at parse time | Simplicity | Low | Verified |
-| R10 | Fix comments that break project rules (internal SDL ID, untagged forward reference, TODO format, spelling) | Comments | Low | Fixed 2026-10-01 |
+| R10 | Fix comments that break project rules (internal SDL ID, untagged forward reference, TODO format, spelling) | Comments | Low | Fixed 2026-10-01 ([febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717)) |
 | R11 | 'ImportErrors': duplicate React keys, a duplicated prop type, and wording when there are only warnings | Bug / Types | Low | Verified |
 | R12 | Remove two avoidable type casts and an 'any[]' | Types | Low | Verified |
 | R13 | Review the image-fetch guard's Microsoft-specific blocked ranges | Security / project fit | Low | Declined 2026-10-01: ranges kept because the problem also exists in other enterprise environments |
-| R14 | Revoke the object URL created for each exported image | Bug (memory) | Low | Verified |
-| R15 | Remove internal story IDs from test names | Tests | Low | Fixed 2026-10-01 |
+| R14 | Revoke the object URL created for each exported image | Bug (memory) | Low | Fixed 2026-10-01 |
+| R15 | Remove internal story IDs from test names | Tests | Low | Fixed 2026-10-01 ([febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717)) |
 
 Overall, the branch is in good shape. The import pipeline is layered cleanly: parse, then extract the report diagrams, then convert the threats, then assemble the model, then the standard sanitize, migrate, and validate step. Untrusted input is handled carefully, and tests cover hostile input and real fixtures. R1 is the only finding with user impact. Most of the rest remove duplication that has built up across user stories.
 
@@ -134,7 +134,7 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R10: Comments that break project rules (Low, Verified)
 
-**Status:** fixed 2026-10-01. The same 'TODO' format was also fixed in 'MigrationConsentModal'.
+**Status:** fixed 2026-10-01 in commit [febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717). The same 'TODO' format was also fixed in 'MigrationConsentModal'.
 
 - [FileImport/index.tsx](../packages/threat-composer/src/components/workspaces/FileImport/index.tsx#L33-L35) cites an internal SDL requirement ID and "tuned in US-4-T1". For this open-source project, describe the reason instead: avoid reading an oversized file into memory.
 - [extractTmtReportDiagrams/index.ts](../packages/threat-composer/src/utils/tmt/extractTmtReportDiagrams/index.ts#L25) says "calibrate against real report sizes in US-4-T1". That is either a 'TODO: ' item or stale, since US-4-T1 is done.
@@ -167,6 +167,8 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R14: Object URL never revoked (Low, Verified)
 
+**Status:** fixed 2026-10-01. A new 'fetchImage' test failed before the fix and passes after it.
+
 **Where:** [fetchImage.ts](../packages/threat-composer-app/src/utils/convertToDocx/fetchImage.ts#L66).
 
 **What:** each exported image creates a Blob URL that is never released. The branch modified this line; the leak may predate it.
@@ -175,7 +177,7 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R15: Story IDs in test names (Low, Judgment)
 
-**Status:** fixed 2026-10-01.
+**Status:** fixed 2026-10-01 in commit [febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717).
 
 Several 'describe' names embed internal plan IDs, for example "(US-1-T2)" and "(US-1-T5 / US-2)". If the branch is offered upstream, these refer to a plan that upstream doesn't have. Consider plain behavior descriptions instead.
 

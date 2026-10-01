@@ -45,8 +45,12 @@ const fetchImage = async (
     const res = await fetch(url, { redirect: 'error' });
     const buf = await res.arrayBuffer();
     const contentType = res.headers.get('content-type') || 'image/png';
+    // Type the Blob so the Image can decode SVG payloads; without it the browser only sniffs
+    // raster formats and SVGs fail to load, falling back to the "Image Unavailable" placeholder.
+    const objectUrl = URL.createObjectURL(new Blob([buf], { type: contentType }));
     return await new Promise((resolve, reject) => {
       image.onload = () => {
+        URL.revokeObjectURL(objectUrl);
         const width = image.naturalWidth < WORD_DOCX_WIDTH ? image.naturalWidth : WORD_DOCX_WIDTH;
         const height = width === image.naturalWidth ? image.naturalHeight : image.naturalHeight * (
           width / image.naturalWidth
@@ -60,10 +64,11 @@ const fetchImage = async (
           type: imageType,
         });
       };
-      image.onerror = reject;
-      // Type the Blob so the Image can decode SVG payloads; without it the browser only sniffs
-      // raster formats and SVGs fail to load, falling back to the "Image Unavailable" placeholder.
-      image.src = URL.createObjectURL(new Blob([buf], { type: contentType }));
+      image.onerror = (error) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(error);
+      };
+      image.src = objectUrl;
     });
   } catch (e) {
     console.log('Failed to fetch image and returns placeholder image', e);
