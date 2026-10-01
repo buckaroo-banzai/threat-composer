@@ -13,7 +13,7 @@ Date: 2026-09-30. Branch head: '838c581'.
 
 | ID | Recommendation | Category | Impact | Confidence |
 | --- | --- | --- | --- | --- |
-| R1 | Fix the 'save' after **Upgrade** in the IDE path: it sends the workspace as it was before the import | Bug (data loss) | High | Fixed 2026-10-01 |
+| R1 | Fix the 'save' after **Upgrade** in the IDE path: it sends the workspace as it was before the import | Bug (data loss) | High | Fixed 2026-10-01 ([ace4898](https://github.com/buckaroo-banzai/threat-composer/commit/ace4898b24bf177849e80c57df39b7a74e166ba5)) |
 | R2 | Define the schema version (1.1) once instead of three times | Simplicity | Medium | Verified |
 | R3 | Use a single name for the migration entry point, and drop the repeated version check | Simplicity | Medium | Verified |
 | R4 | Extract the shared held-edit logic of 'CommentsEdit' and 'CustomMetadataEditor' | Simplicity | Medium | Verified + Judgment |
@@ -35,7 +35,7 @@ Overall, the branch is in good shape. The import pipeline is layered cleanly: pa
 
 ### R1: The 'save' after Upgrade carries pre-import data (High, Confirmed in browser mode)
 
-**Status:** fixed 2026-10-01 with option (a).
+**Status:** fixed 2026-10-01 with option (a), in commit [ace4898](https://github.com/buckaroo-banzai/threat-composer/commit/ace4898b24bf177849e80c57df39b7a74e166ba5).
 - A new 'WindowExporter' test reproduces the bug: it failed before the fix and passes after it.
 - In VS Code, a schema 1.0 file with 20 threats was saved on disk as schema 1.1 with all 20 threats and its diagram image after **Upgrade**.
 
