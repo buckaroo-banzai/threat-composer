@@ -132,10 +132,11 @@ const fillMappingFields = (fields: TmtTemplateFields, names: ElementNames): TmtT
   const filled: Record<string, string | string[] | undefined> = {};
   for (const [key, value] of Object.entries(fields)) {
     const values = (Array.isArray(value) ? value : [value]).map((v) => fillPlaceholders(v, names));
-    if (values.some((v) => v === undefined)) {
+    const filledValues = values.filter((v): v is string => v !== undefined);
+    if (filledValues.length !== values.length) {
       return undefined;
     }
-    filled[key] = Array.isArray(value) ? values as string[] : values[0];
+    filled[key] = Array.isArray(value) ? filledValues : filledValues[0];
   }
   return filled as TmtTemplateFields;
 };

@@ -119,7 +119,7 @@ const getThreats = async (
   data: DataExchangeFormat,
   threatsOnly = false,
 ) => {
-  const children: any[] = [];
+  const children: (Paragraph | Table | TableOfContents)[] = [];
 
   children.push(new Paragraph({
     heading: HeadingLevel.HEADING_1,
