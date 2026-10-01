@@ -16,9 +16,9 @@ Date: 2026-09-30. Branch head: '838c581'.
 | R1 | Fix the 'save' after **Upgrade** in the IDE path: it sends the workspace as it was before the import | Bug (data loss) | High | Fixed 2026-10-01 ([ace4898](https://github.com/buckaroo-banzai/threat-composer/commit/ace4898b24bf177849e80c57df39b7a74e166ba5)) |
 | R2 | Define the schema version (1.1) once instead of three times | Simplicity | Medium | Fixed 2026-10-01 ([3e8c8b0](https://github.com/buckaroo-banzai/threat-composer/commit/3e8c8b05437ba6affba2da17373c76995cce1eaa)) |
 | R3 | Use a single name for the migration entry point, and drop the repeated version check | Simplicity | Medium | Fixed 2026-10-01 ([3e8c8b0](https://github.com/buckaroo-banzai/threat-composer/commit/3e8c8b05437ba6affba2da17373c76995cce1eaa)) |
-| R4 | Extract the shared held-edit logic of 'CommentsEdit' and 'CustomMetadataEditor' | Simplicity | Medium | Verified + Judgment |
+| R4 | Extract the shared held-edit logic of 'CommentsEdit' and 'CustomMetadataEditor' | Simplicity | Medium | Declined 2026-10-01: little value, abstraction risk, heavy re-testing |
 | R5 | Reset the TMT import state in one place in 'FileImport' | Simplicity | Medium | Fixed 2026-10-01 ([fdc3879](https://github.com/buckaroo-banzai/threat-composer/commit/fdc38795ac3df8e96ecb9c2c084a519d3b0ec8cd)) |
-| R6 | Share the per-threat report fields between the Markdown and Word exports | Simplicity | Medium | Fixed 2026-10-01 |
+| R6 | Share the per-threat report fields between the Markdown and Word exports | Simplicity | Medium | Fixed 2026-10-01 ([2bcc2bd](https://github.com/buckaroo-banzai/threat-composer/commit/2bcc2bd2794945bbe7a9b3a28ac1e41c7897ccd4)) |
 | R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Fixed 2026-10-01 ([b5c37f5](https://github.com/buckaroo-banzai/threat-composer/commit/b5c37f5143304c0e6f05607df569cfac95efbbcd)) |
 | R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Partly done 2026-10-01 ([31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)): 'order' and its sort removed; 'version' restored because it documents the supported TMT format version; other fields kept by decision |
 | R9 | Trim TMT surface names once, at parse time | Simplicity | Low | Fixed 2026-10-01 ([31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)) |
@@ -80,6 +80,8 @@ I recommend (a), followed by a real VS Code check: open a 1.0 file, choose **Upg
 
 ### R4: 'CommentsEdit' and 'CustomMetadataEditor' duplicate the held-edit lifecycle (Medium, Verified + Judgment)
 
+**Decision (2026-10-01): declined; no change.** Extracting a shared hook would couple the two editors: once both depend on the shared code, a change made for one affects the other. Only two editors would use it, and they already differ (rows with validation versus plain text, and a keystroke-save mode in 'CommentsEdit'), so the hook would need optional parts to fit both, an early sign of the wrong abstraction. The benefit is small, and the refactor would require re-testing working behavior in the browser and VS Code. Revisit if a third editor needs held edits.
+
 **Where:** [CommentsEdit/index.tsx](../packages/threat-composer/src/components/generic/CommentsEdit/index.tsx#L43-L83) and [CustomMetadataEditor/index.tsx](../packages/threat-composer/src/components/threats/CustomMetadataEditor/index.tsx#L52-L107).
 
 **What:** both components hold typed text until focus loss or page hide. Both implement the same mechanics:
@@ -104,7 +106,7 @@ I recommend (a), followed by a real VS Code check: open a 1.0 file, choose **Upg
 
 ### R6: The Markdown and Word reports duplicate the per-threat field logic (Medium, Verified + Judgment)
 
-**Status:** fixed 2026-10-01. A generic 'getThreatReportFields(threat, data)' in the core package (exported for the app) returns the status label, priority, STRIDE, the TMT description, the other custom entries, and the linked mitigations and assumptions; both reports use it, and the Word export's two copied loops are replaced by 'linkedItemRuns(label, items)'. The helper has its own unit tests, and the existing Markdown report tests pass unchanged. The Word export's threat section has no unit test, so it is checked manually.
+**Status:** fixed 2026-10-01 in commit [2bcc2bd](https://github.com/buckaroo-banzai/threat-composer/commit/2bcc2bd2794945bbe7a9b3a28ac1e41c7897ccd4). A generic 'getThreatReportFields(threat, data)' in the core package (exported for the app) returns the status label, priority, STRIDE, the TMT description, the other custom entries, and the linked mitigations and assumptions; both reports use it, and the Word export's two copied loops are replaced by 'linkedItemRuns(label, items)'. The helper has its own unit tests, and the existing Markdown report tests pass unchanged. The Word export's threat section has no unit test, so it is checked manually.
 
 **Where:**
 - Markdown: [getThreats/index.ts](../packages/threat-composer/src/utils/convertToMarkdown/utils/getThreats/index.ts#L62-L84).
@@ -233,5 +235,5 @@ Several 'describe' names embed internal plan IDs, for example "(US-1-T2)" and "(
 1. **R1** (data loss) — done.
 2. **R10, R11, R14** (small, local fixes).
 3. **R2, R3, R5** (small simplifications with low risk).
-4. **R4, R6, R7** (larger refactors; agree on the design first, then retest manually).
+4. **R4, R6, R7** (larger refactors; agree on the design first, then retest manually). R4 was declined (see its decision).
 5. **R8, R9, R12, R15**, as you choose. R13 was declined (see its decision).
