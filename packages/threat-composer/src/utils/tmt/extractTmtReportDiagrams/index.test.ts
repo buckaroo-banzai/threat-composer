@@ -28,7 +28,6 @@ const makeSurface = (over: Partial<TmtDrawingSurface>): TmtDrawingSurface => ({
   guid: 'guid-0',
   name: 'Diagram 1',
   isEmpty: false,
-  order: 0,
   ...over,
 });
 
@@ -78,8 +77,8 @@ describe('extractTmtReportDiagrams - extraction rules', () => {
 
   test('matches only non-empty surfaces, which the report includes in model order', () => {
     const surfaces = [
-      makeSurface({ guid: 'empty', name: 'Empty', isEmpty: true, order: 0 }),
-      makeSurface({ guid: 'real', name: 'Diagram 1', isEmpty: false, order: 1 }),
+      makeSurface({ guid: 'empty', name: 'Empty', isEmpty: true }),
+      makeSurface({ guid: 'real', name: 'Diagram 1', isEmpty: false }),
     ];
     const diagrams = extractTmtReportDiagrams(diagramReport([{ name: 'Diagram 1' }]), surfaces);
     expect(diagrams).toHaveLength(1);
@@ -94,8 +93,8 @@ describe('extractTmtReportDiagrams - extraction rules', () => {
 describe('extractTmtReportDiagrams - failure policy (all blocking)', () => {
   test('throws on a diagram-count mismatch rather than guessing', () => {
     const surfaces = [
-      makeSurface({ guid: 'a', name: 'Diagram 1', order: 0 }),
-      makeSurface({ guid: 'b', name: 'Diagram 2', order: 1 }),
+      makeSurface({ guid: 'a', name: 'Diagram 1' }),
+      makeSurface({ guid: 'b', name: 'Diagram 2' }),
     ];
     expect(() => extractTmtReportDiagrams(diagramReport([{ name: 'Diagram 1' }]), surfaces)).toThrow(/refusing to guess/);
   });

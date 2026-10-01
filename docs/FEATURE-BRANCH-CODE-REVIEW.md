@@ -17,11 +17,11 @@ Date: 2026-09-30. Branch head: '838c581'.
 | R2 | Define the schema version (1.1) once instead of three times | Simplicity | Medium | Fixed 2026-10-01 ([3e8c8b0](https://github.com/buckaroo-banzai/threat-composer/commit/3e8c8b05437ba6affba2da17373c76995cce1eaa)) |
 | R3 | Use a single name for the migration entry point, and drop the repeated version check | Simplicity | Medium | Fixed 2026-10-01 ([3e8c8b0](https://github.com/buckaroo-banzai/threat-composer/commit/3e8c8b05437ba6affba2da17373c76995cce1eaa)) |
 | R4 | Extract the shared held-edit logic of 'CommentsEdit' and 'CustomMetadataEditor' | Simplicity | Medium | Verified + Judgment |
-| R5 | Reset the TMT import state in one place in 'FileImport' | Simplicity | Medium | Fixed 2026-10-01 |
+| R5 | Reset the TMT import state in one place in 'FileImport' | Simplicity | Medium | Fixed 2026-10-01 ([fdc3879](https://github.com/buckaroo-banzai/threat-composer/commit/fdc38795ac3df8e96ecb9c2c084a519d3b0ec8cd)) |
 | R6 | Share the per-threat report fields between the Markdown and Word exports | Simplicity | Medium | Verified + Judgment |
 | R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Judgment |
-| R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Verified |
-| R9 | Trim TMT surface names once, at parse time | Simplicity | Low | Verified |
+| R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Partly done 2026-10-01: 'order', its sort, and 'version' removed; other fields kept by decision |
+| R9 | Trim TMT surface names once, at parse time | Simplicity | Low | Fixed 2026-10-01 |
 | R10 | Fix comments that break project rules (internal SDL ID, untagged forward reference, TODO format, spelling) | Comments | Low | Fixed 2026-10-01 ([febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717)) |
 | R11 | 'ImportErrors': duplicate React keys, a duplicated prop type, and wording when there are only warnings | Bug / Types | Low | Fixed 2026-10-01 ([c2d80fc](https://github.com/buckaroo-banzai/threat-composer/commit/c2d80fc3182543d64e7729aa1e796f1a13893419)) |
 | R12 | Remove two avoidable type casts and an 'any[]' | Types | Low | Verified |
@@ -96,7 +96,7 @@ I recommend (a), followed by a real VS Code check: open a 1.0 file, choose **Upg
 
 ### R5: 'FileImport' resets TMT state in three places (Medium, Verified)
 
-**Status:** fixed 2026-10-01. 'resetImportState()' clears the parse result, error, and errors overlay; the two places that also clear the selected files still do so themselves, because clearing the files from the file-change handler would trigger that handler again. By your decision, the four TMT import size limits also moved into 'src/configs/constants.ts', next to the project's other input limits.
+**Status:** fixed 2026-10-01 in commit [fdc3879](https://github.com/buckaroo-banzai/threat-composer/commit/fdc38795ac3df8e96ecb9c2c084a519d3b0ec8cd). 'resetImportState()' clears the parse result, error, and errors overlay; the two places that also clear the selected files still do so themselves, because clearing the files from the file-change handler would trigger that handler again. By your decision, the four TMT import size limits also moved into 'src/configs/constants.ts', next to the project's other input limits.
 
 **Where:** 'finishImport' ([FileImport/index.tsx](../packages/threat-composer/src/components/workspaces/FileImport/index.tsx#L102)), the file-change effect ([line 178](../packages/threat-composer/src/components/workspaces/FileImport/index.tsx#L178)), and 'handleModeChange' ([line 187](../packages/threat-composer/src/components/workspaces/FileImport/index.tsx#L187)). Each clears the same five or six state variables by hand.
 
@@ -126,6 +126,8 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R8: Unused TMT model fields and a no-op sort (Low, Verified)
 
+**Status (2026-10-01):** by your decision, 'TmtDrawingSurface.order' (with its sort) and 'TmtModel.version' were removed, because they carry no information. 'surfaceGuid', 'TmtThreat.key', 'interactionKey', and 'TmtThreatType.description' were kept, so the parser stays a faithful model of the file for later tasks.
+
 **Where:**
 - Never read in production code: 'TmtReportDiagram.surfaceGuid' ([extractTmtReportDiagrams/index.ts](../packages/threat-composer/src/utils/tmt/extractTmtReportDiagrams/index.ts#L20)), 'TmtThreat.key' and 'interactionKey' ([tmtModel.ts](../packages/threat-composer/src/utils/tmt/tmtModel.ts#L39-L47)), 'TmtThreatType.description', and 'TmtModel.version'.
 - 'TmtDrawingSurface.order' is always the array index, so the sort by 'order' ([extractTmtReportDiagrams/index.ts](../packages/threat-composer/src/utils/tmt/extractTmtReportDiagrams/index.ts#L83)) changes nothing.
@@ -133,6 +135,8 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 **Suggested change:** remove any of these fields that US-4-T11 (mitigations) and US-5 do not need, and remove 'order' together with the sort. To discuss: the parser was designed as a neutral, faithful model, so you may prefer to keep some of these fields deliberately.
 
 ### R9: Trim surface names once (Low, Verified)
+
+**Status:** fixed 2026-10-01. The XML parser is configured with 'trimValues: true', so names already come out trimmed; a new parser test confirms this, and the five redundant '.trim()' calls in the extractor were removed. No parser change was needed.
 
 **Where:** 'surface.name.trim()' appears five times in [extractTmtReportDiagrams/index.ts](../packages/threat-composer/src/utils/tmt/extractTmtReportDiagrams/index.ts#L95-L113).
 

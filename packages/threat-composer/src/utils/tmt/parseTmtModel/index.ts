@@ -142,11 +142,10 @@ export const parseTmtModel = (xml: string, options: { maxChars?: number } = {}):
 
   const surfaceModels = toArray(root.DrawingSurfaceList?.DrawingSurfaceModel);
   const surfaces: TmtDrawingSurface[] = surfaceModels.map(
-    (surface: any, index: number) => ({
+    (surface: any) => ({
       guid: text(surface.Guid) || '',
       name: surfaceName(surface),
       isEmpty: surfaceIsEmpty(surface),
-      order: index,
     }),
   );
 
@@ -238,7 +237,6 @@ export const parseTmtModel = (xml: string, options: { maxChars?: number } = {}):
   }
 
   return {
-    version,
     metadata,
     surfaces,
     elementNames,

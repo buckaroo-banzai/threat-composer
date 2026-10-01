@@ -22,17 +22,12 @@ const fixture = (name: string) => readFileSync(join(__dirname, '../__fixtures__'
 describe('parseTmtModel - Sample_Threat_Model.tm7 (single DFD)', () => {
   const model = parseTmtModel(fixture('Sample_Threat_Model.tm7'));
 
-  test('reports model version 4.3', () => {
-    expect(model.version).toBe('4.3');
-  });
-
   test('extracts the single non-empty drawing surface with its GUID and name', () => {
     expect(model.surfaces).toHaveLength(1);
     expect(model.surfaces[0]).toMatchObject({
       guid: 'd8c8aab1-5108-49c5-92a1-b214ba353477',
       name: 'Diagram 1',
       isEmpty: false,
-      order: 0,
     });
   });
 
@@ -77,7 +72,6 @@ describe('parseTmtModel - Sample_Threat_Model_Multiple_DFDs.tm7 (multiple DFDs)'
 
   test('extracts all three surfaces in document order', () => {
     expect(model.surfaces.map((s) => s.name)).toEqual(['Diagram 1', 'Diagram 2', 'Diagram 3']);
-    expect(model.surfaces.map((s) => s.order)).toEqual([0, 1, 2]);
   });
 
   test('extracts every threat instance', () => {
@@ -112,13 +106,17 @@ describe('parseTmtModel - minimal valid model', () => {
   const model = parseTmtModel(validMinimal);
 
   test('parses a minimal model and marks a surface with no elements as empty', () => {
-    expect(model.version).toBe('4.3');
     expect(model.surfaces).toEqual([
-      { guid: '11111111-1111-1111-1111-111111111111', name: 'Empty Diagram', isEmpty: true, order: 0 },
+      { guid: '11111111-1111-1111-1111-111111111111', name: 'Empty Diagram', isEmpty: true },
     ]);
     expect(model.metadata.threatModelName).toBe('My Model');
     expect(model.threats).toEqual([]);
     expect(model.elementNames).toEqual({});
+  });
+
+  test('returns surface names without surrounding whitespace', () => {
+    const padded = parseTmtModel(validMinimal.replace('<Header>Empty Diagram</Header>', '<Header>  Empty Diagram \n</Header>'));
+    expect(padded.surfaces[0].name).toBe('Empty Diagram');
   });
 
   test('keeps an element named by an untrusted __proto__ GUID as plain data', () => {

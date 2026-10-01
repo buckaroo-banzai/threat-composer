@@ -77,7 +77,7 @@ export const extractTmtReportDiagrams = (
     throw new Error('Full Report HTML exceeds the maximum allowed size');
   }
 
-  const expected = surfaces.filter((surface) => !surface.isEmpty).sort((a, b) => a.order - b.order);
+  const expected = surfaces.filter((surface) => !surface.isEmpty);
 
   const found = extractDiagramNodes(new DOMParser().parseFromString(html, 'text/html'));
 
@@ -89,24 +89,24 @@ export const extractTmtReportDiagrams = (
 
   return expected.map((surface, index) => {
     const diagram = found[index];
-    if (diagram.name !== surface.name.trim()) {
+    if (diagram.name !== surface.name) {
       throw new Error(
-        `Full Report diagram at position ${index + 1} is named "${diagram.name}", but the model surface at that position is named "${surface.name.trim()}"`,
+        `Full Report diagram at position ${index + 1} is named "${diagram.name}", but the model surface at that position is named "${surface.name}"`,
       );
     }
     if (!diagram.src.startsWith(PNG_DATA_URL_PREFIX)) {
-      throw new Error(`Full Report diagram "${surface.name.trim()}" does not have an embedded PNG image`);
+      throw new Error(`Full Report diagram "${surface.name}" does not have an embedded PNG image`);
     }
     const base64 = diagram.src.slice(PNG_DATA_URL_PREFIX.length);
     if (!VALID_BASE64_PAYLOAD_PATTERN.test(base64)) {
-      throw new Error(`Full Report diagram "${surface.name.trim()}" has a malformed or non-base64 image payload`);
+      throw new Error(`Full Report diagram "${surface.name}" has a malformed or non-base64 image payload`);
     }
     const bytes = decodedBase64Bytes(base64);
     if (bytes > maxImageBytes) {
       throw new Error(
-        `Full Report diagram "${surface.name.trim()}" image is ${bytes} bytes, exceeding the ${maxImageBytes}-byte limit`,
+        `Full Report diagram "${surface.name}" image is ${bytes} bytes, exceeding the ${maxImageBytes}-byte limit`,
       );
     }
-    return { surfaceGuid: surface.guid, name: surface.name.trim(), image: diagram.src };
+    return { surfaceGuid: surface.guid, name: surface.name, image: diagram.src };
   });
 };

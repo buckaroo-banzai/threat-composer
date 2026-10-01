@@ -31,7 +31,6 @@ export interface TmtDrawingSurface {
   guid: string;
   name: string;
   isEmpty: boolean; // no stencil elements (Borders) and no connectors (Lines)
-  order: number; // position within DrawingSurfaceList, in document order
 }
 
 export interface TmtThreat {
@@ -68,7 +67,6 @@ export interface TmtKnowledgeBase {
 }
 
 export interface TmtModel {
-  version: string; // <Version>; a successfully parsed model always has '4.3'
   metadata: TmtMetaInformation;
   surfaces: TmtDrawingSurface[]; // DrawingSurfaceList, in document order
   elementNames: Record<string, string>; // DFD element and data-flow GUID -> Name, across all surfaces
