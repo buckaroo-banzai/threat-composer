@@ -51,8 +51,11 @@ const renderThreatStatement = (statement: TemplateThreatStatement): {
     }
   });
 
+  // A single field with a custom template renders through the template, verbatim and at normal weight.
+  const isSingleFieldTemplate = filledField.length === 1 && !!statement.customTemplate;
+
   // Only one field is filled
-  if (filledField.length === 1) {
+  if (filledField.length === 1 && !isSingleFieldTemplate) {
     let prefix = '...', suffix = '...';
     if (threatFieldData[filledField[0]].fieldPosition === 1) {
       prefix = '';
@@ -120,7 +123,7 @@ const renderThreatStatement = (statement: TemplateThreatStatement): {
 
     const updatedContent = token === 'prerequisites' && content === PLACEHOLDER ? '' : content;
 
-    const displayedOutput = token === 'threat_action' ? {
+    const displayedOutput = token === 'threat_action' && !isSingleFieldTemplate ? {
       type: 'b',
       content: updatedContent,
       tooltip: threatFieldData[token]?.tooltip,
@@ -144,8 +147,10 @@ const renderThreatStatement = (statement: TemplateThreatStatement): {
     outputProcessor: outputProcessor,
   });
 
+  const renderedStatement = parseOutput.map(x => x.stringOutput).join(' ').replace(/\s\s+/g, ' ').replace(/ ,/g, ',');
+
   return {
-    statement: parseOutput.map(x => x.stringOutput).join(' ').replace(/\s\s+/g, ' ').replace(/ ,/g, ','),
+    statement: isSingleFieldTemplate ? renderedStatement.trim() : renderedStatement,
     displayedStatement: parseOutput.map(x => x.displayOutput),
     suggestions: suggestions.sort(),
   };
