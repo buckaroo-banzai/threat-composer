@@ -16,12 +16,22 @@ Each TMT threat instance maps to one TC threat.
 | --- | --- | --- |
 | 'id' | — | new UUID v4 |
 | 'numericId' | threat 'Id' (integer) | preserve; if missing or duplicated, allocate an unused numeric id and warn |
-| 'statement' | threat 'properties.Title' | verbatim. If absent, fall back to the Knowledge Base 'ThreatType.ShortTitle' template with '{source.Name}' / '{flow.Name}' / '{target.Name}' resolved from the referenced DFD elements. Block import if still empty or unresolved placeholders remain |
+| 'statement', 'displayedStatement' | composed | rendered by TC's own statement renderer from the grammar fields below, so threat cards and the threat editor show the same sentence |
+| grammar fields ('threatSource', 'prerequisites', 'threatAction', 'threatImpact', 'impactedGoal', 'impactedAssets') | curated template mapping (via 'TypeId'), else the fallback | see Statement composition below |
+| 'customTemplate' | — | '[threat_action]' for a fallback statement only (a fixed literal; never built from '.tm7' content) |
 | 'status' | threat 'State' | see Status mapping below |
 | 'metadata' → 'Priority' | threat 'Priority' | see Priority mapping below |
 | 'metadata' → 'STRIDE' | 'ThreatType.Category' (via 'TypeId') | see STRIDE mapping below |
 | 'metadata' → 'custom:TMT *' | threat fields / properties | see Custom TMT metadata below |
-| grammar fields ('threatSource', 'prerequisites', 'threatAction', 'threatImpact', 'impactedGoal', 'impactedAssets') | — | NOT inferred; left empty (TMT has no equivalent structured fields) |
+
+### Statement composition
+
+TMT generates each threat's title and description from its Knowledge Base threat type's templates. A curated, human-reviewed table ('src/utils/tmt/templateMappings/') maps each known threat type's description into TC grammar fields once.
+
+- **Placeholders:** '{source.Name}', '{target.Name}', and '{flow.Name}' are filled with the names of the DFD elements the threat refers to ('SourceGuid', 'TargetGuid', 'FlowGuid').
+- **When a mapping applies:** only if the threat's 'TypeId' has an entry and its title and description are still the unedited Knowledge Base text (compared after trimming; a placeholder may appear filled with the element's name or, as TMT sometimes leaves the lowercase '{source.name}', unfilled). Grammar fields are never inferred from edited or free-form text.
+- **Fallback (with an import warning):** when no mapping applies, or a mapped field would exceed TC's 200-character field limit, the statement is the first of the TMT description, title, or Knowledge Base 'ThreatType.ShortTitle' that is non-empty, has every placeholder resolved, and fits in 200 characters after HTML encoding. It is stored in 'threatAction' with 'customTemplate' '[threat_action]', so it renders as written.
+- A DFD element name longer than 200 characters is treated as unusable, because it cannot fit in any field.
 
 ### Status mapping
 
@@ -72,6 +82,7 @@ Preserved as TC threat metadata entries so nothing is lost. Fixed entries:
 | TC metadata key | TMT source |
 | --- | --- |
 | 'custom:TMT Threat ID' | threat 'Id' |
+| 'custom:TMT Title' | 'properties.Title' |
 | 'custom:TMT Category' | 'ThreatType.Category' |
 | 'custom:TMT State' | threat 'State' |
 | 'custom:TMT Description' | 'properties.UserThreatDescription' |
@@ -83,8 +94,8 @@ Additionally, **every other non-empty threat property** is preserved as 'custom:
 
 ### Failure policy
 
-- A threat with no resolvable 'statement'/title, or missing identity, **blocks the import** (nothing is imported partially).
-- Missing *optional* metadata produces a warning, not a block.
+- A threat that cannot be imported faithfully is listed with a specific reason, and the user chooses to abort the import or continue without it. Reasons: no usable statement (see Statement composition), a metadata field name over 50 characters, a metadata value over 100,000 characters, more than 50 metadata fields, or any other TC schema limit, checked on the HTML-encoded text the import stores.
+- Missing *optional* metadata, unknown states, non-STRIDE categories, duplicate ids, and fallback statements produce warnings, not blocks.
 - Threats are never silently skipped, truncated, or reclassified.
 
 ---
@@ -116,6 +127,5 @@ The workspace and Application name default to 'ThreatModelName', falling back to
 
 ## Not mapped
 
-- **Diagram geometry / rendering:** element coordinates, sizes, connector routes, ports, zoom, stroke/dash, icon image streams. (Data-only import; DFD images come from the Full Report.)
-- **TC grammar fields:** 'threatSource', 'prerequisites', 'threatAction', 'threatImpact', 'impactedGoal', 'impactedAssets' — never inferred from TMT text.
-- **TMT model-validation results, Profile, and Knowledge Base element/attribute definitions** — not represented as TC entities (the Knowledge Base is consulted only for title templates and property display labels).
+- **Diagram geometry / rendering:** element coordinates, sizes, connector routes, ports, zoom, stroke/dash, icon image streams. (Data-only import; DFD images come from the Full Report.) Element names are read only to fill statement placeholders.
+- **TMT model-validation results, Profile, and Knowledge Base element/attribute definitions** — not represented as TC entities (the Knowledge Base is consulted only for short titles, categories, and property display labels).
