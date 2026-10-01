@@ -181,6 +181,61 @@ const composeStatement = (
   };
 };
 
+const buildThreatMetadata = (threat: TmtThreat, model: TmtModel, category: string | undefined): MetadataEntry[] => {
+  const metadata: MetadataEntry[] = [];
+  const usedKeys = new Set<string>();
+  const add = (key: string, value: string | string[] | undefined) => {
+    if (value === undefined || value === '' || (Array.isArray(value) && value.length === 0) || usedKeys.has(key)) {
+      return;
+    }
+    metadata.push({ key, value });
+    usedKeys.add(key);
+  };
+
+  if (category && STRIDE_LETTERS.has(category)) {
+    add(METADATA_KEY_STRIDE, [category]);
+  }
+  const priority = threat.priority ? PRIORITY_BY_TMT.get(threat.priority) : undefined;
+  if (priority) {
+    add(METADATA_KEY_PRIORITY, priority);
+  }
+
+  add('custom:TMT Threat ID', String(threat.id));
+  add('custom:TMT Title', threat.properties.Title);
+  add('custom:TMT Category', category);
+  add('custom:TMT State', threat.state);
+  add('custom:TMT Description', threat.properties.UserThreatDescription);
+  add('custom:TMT Interaction', threat.properties.InteractionString);
+  add('custom:TMT Diagram', model.surfaces.find((surface) => surface.guid === threat.drawingSurfaceGuid)?.name);
+  add('custom:TMT Justification', threat.properties.StateInformation);
+
+  // Preserve every other non-empty property as custom:TMT <label> (KB label, else raw name);
+  // on collision with an existing key, fall back to the raw property name to stay unique.
+  for (const [name, value] of Object.entries(threat.properties)) {
+    if (CONSUMED_PROPERTIES.has(name) || !value) {
+      continue;
+    }
+    const labelKey = `custom:TMT ${model.knowledgeBase.propertyLabels[name] ?? name}`;
+    add(usedKeys.has(labelKey) ? `custom:TMT ${name}` : labelKey, value);
+  }
+  return metadata;
+};
+
+const getMetadataLimitError = (metadata: MetadataEntry[]): string | undefined => {
+  const overLongKey = metadata.find((entry) => entry.key.length > METADATA_KEY_MAX_LENGTH);
+  if (overLongKey) {
+    return `Metadata field name "${overLongKey.key}" is ${overLongKey.key.length} characters, exceeding the ${METADATA_KEY_MAX_LENGTH}-character limit.`;
+  }
+  if (metadata.length > METADATA_MAX_ENTRIES) {
+    return `Threat has ${metadata.length} metadata fields, exceeding the ${METADATA_MAX_ENTRIES}-field limit.`;
+  }
+  const overLongValue = metadata.find((entry) => longestValueLength(entry) > METADATA_VALUE_MAX_LENGTH);
+  if (overLongValue) {
+    return `Metadata field "${overLongValue.key}" value is ${longestValueLength(overLongValue)} characters, exceeding the ${METADATA_VALUE_MAX_LENGTH}-character limit.`;
+  }
+  return undefined;
+};
+
 /**
  * Converts the threats of a parsed TMT model into Threat Composer threats, following the documented
  * '.tm7' -> Threat Composer mapping. A threat that cannot be faithfully imported (no resolvable
@@ -193,7 +248,6 @@ export const convertTmtThreats = (model: TmtModel): TmtThreatConversionResult =>
   const warnings: string[] = [];
   const unconvertible: TmtUnconvertibleThreat[] = [];
   const threats: TemplateThreatStatement[] = [];
-  const surfaceNameByGuid = new Map(model.surfaces.map((surface) => [surface.guid, surface.name]));
   const usedNumericIds = new Set<number>();
   let nextAllocatedId = model.threats.reduce((max, threat) => Math.max(max, threat.id), 0) + 1;
 
@@ -235,70 +289,15 @@ export const convertTmtThreats = (model: TmtModel): TmtThreatConversionResult =>
       }
     }
 
-    const metadata: MetadataEntry[] = [];
-    const usedKeys = new Set<string>();
-    const add = (key: string, value: string | string[] | undefined) => {
-      if (value === undefined || value === '' || (Array.isArray(value) && value.length === 0) || usedKeys.has(key)) {
-        return;
-      }
-      metadata.push({ key, value });
-      usedKeys.add(key);
-    };
-
     const category = threatType?.category?.trim();
-    if (category && STRIDE_LETTERS.has(category)) {
-      add(METADATA_KEY_STRIDE, [category]);
-    } else if (category) {
+    if (category && !STRIDE_LETTERS.has(category)) {
       threatWarnings.push(`TMT category '${category}' for threat ${threat.id} is not a STRIDE letter; STRIDE omitted`);
     }
 
-    const priority = threat.priority ? PRIORITY_BY_TMT.get(threat.priority) : undefined;
-    if (priority) {
-      add(METADATA_KEY_PRIORITY, priority);
-    }
-
-    add('custom:TMT Threat ID', String(threat.id));
-    add('custom:TMT Title', threat.properties.Title);
-    add('custom:TMT Category', category);
-    add('custom:TMT State', threat.state);
-    add('custom:TMT Description', threat.properties.UserThreatDescription);
-    add('custom:TMT Interaction', threat.properties.InteractionString);
-    add('custom:TMT Diagram', threat.drawingSurfaceGuid ? surfaceNameByGuid.get(threat.drawingSurfaceGuid) : undefined);
-    add('custom:TMT Justification', threat.properties.StateInformation);
-
-    // Preserve every other non-empty property as custom:TMT <label> (KB label, else raw name);
-    // on collision with an existing key, fall back to the raw property name to stay unique.
-    for (const [name, value] of Object.entries(threat.properties)) {
-      if (CONSUMED_PROPERTIES.has(name) || !value) {
-        continue;
-      }
-      const labelKey = `custom:TMT ${model.knowledgeBase.propertyLabels[name] ?? name}`;
-      add(usedKeys.has(labelKey) ? `custom:TMT ${name}` : labelKey, value);
-    }
-
-    const overLongKey = metadata.find((entry) => entry.key.length > METADATA_KEY_MAX_LENGTH);
-    if (overLongKey) {
-      unconvertible.push({
-        id: threat.id,
-        reason: `Metadata field name "${overLongKey.key}" is ${overLongKey.key.length} characters, exceeding the ${METADATA_KEY_MAX_LENGTH}-character limit.`,
-      });
-      continue;
-    }
-
-    if (metadata.length > METADATA_MAX_ENTRIES) {
-      unconvertible.push({
-        id: threat.id,
-        reason: `Threat has ${metadata.length} metadata fields, exceeding the ${METADATA_MAX_ENTRIES}-field limit.`,
-      });
-      continue;
-    }
-
-    const overLongValue = metadata.find((entry) => longestValueLength(entry) > METADATA_VALUE_MAX_LENGTH);
-    if (overLongValue) {
-      unconvertible.push({
-        id: threat.id,
-        reason: `Metadata field "${overLongValue.key}" value is ${longestValueLength(overLongValue)} characters, exceeding the ${METADATA_VALUE_MAX_LENGTH}-character limit.`,
-      });
+    const metadata = buildThreatMetadata(threat, model, category);
+    const metadataLimitError = getMetadataLimitError(metadata);
+    if (metadataLimitError) {
+      unconvertible.push({ id: threat.id, reason: metadataLimitError });
       continue;
     }
 

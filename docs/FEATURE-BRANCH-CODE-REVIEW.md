@@ -19,7 +19,7 @@ Date: 2026-09-30. Branch head: '838c581'.
 | R4 | Extract the shared held-edit logic of 'CommentsEdit' and 'CustomMetadataEditor' | Simplicity | Medium | Verified + Judgment |
 | R5 | Reset the TMT import state in one place in 'FileImport' | Simplicity | Medium | Fixed 2026-10-01 ([fdc3879](https://github.com/buckaroo-banzai/threat-composer/commit/fdc38795ac3df8e96ecb9c2c084a519d3b0ec8cd)) |
 | R6 | Share the per-threat report fields between the Markdown and Word exports | Simplicity | Medium | Verified + Judgment |
-| R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Judgment |
+| R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Fixed 2026-10-01 |
 | R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Partly done 2026-10-01 ([31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)): 'order' and its sort removed; 'version' restored because it documents the supported TMT format version; other fields kept by decision |
 | R9 | Trim TMT surface names once, at parse time | Simplicity | Low | Fixed 2026-10-01 ([31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)) |
 | R10 | Fix comments that break project rules (internal SDL ID, untagged forward reference, TODO format, spelling) | Comments | Low | Fixed 2026-10-01 ([febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717)) |
@@ -118,6 +118,8 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R7: 'convertTmtThreats' is one long loop (Medium, Judgment)
 
+**Status:** fixed 2026-10-01. By your decision, the metadata building moved into 'buildThreatMetadata(threat, model, category)', and the three limit checks into 'getMetadataLimitError(metadata)', which returns the reason or 'undefined' (matching the existing 'getCustomMetadataNameError' pattern). The existing converter tests pass unchanged. One edge case changed: the 'custom:TMT Diagram' lookup now takes the first surface with a matching GUID rather than the last; valid TMT files have unique surface GUIDs.
+
 **Where:** [convertTmtThreats/index.ts](../packages/threat-composer/src/utils/tmt/convertTmtThreats/index.ts#L191-L338).
 
 **What:** after 'composeStatement' was extracted, the loop still builds metadata (from [line 237](../packages/threat-composer/src/utils/tmt/convertTmtThreats/index.ts#L237)), runs three limit checks (from [line 278](../packages/threat-composer/src/utils/tmt/convertTmtThreats/index.ts#L278)), reallocates IDs, and validates against the schema.
@@ -126,7 +128,7 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R8: Unused TMT model fields and a no-op sort (Low, Verified)
 
-**Status (2026-10-01, commit [31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)):** by your decision, 'TmtDrawingSurface.order' (with its sort) was removed, because it always equalled the array position. 'TmtModel.version' was also removed in that commit, then restored in the next change: although it is always '4.3', it documents which TMT format version the import is meant to support. 'surfaceGuid', 'TmtThreat.key', 'interactionKey', and 'TmtThreatType.description' were kept, so the parser stays a faithful model of the file for later tasks.
+**Status (2026-10-01, commit [31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)):** by your decision, 'TmtDrawingSurface.order' (with its sort) was removed, because it always equalled the array position. 'TmtModel.version' was also removed in that commit, then restored in the next change (commit [d4ef106](https://github.com/buckaroo-banzai/threat-composer/commit/d4ef106065ac2618c4918e7f9b794d7ec6000188)): although it is always '4.3', it documents which TMT format version the import is meant to support. 'surfaceGuid', 'TmtThreat.key', 'interactionKey', and 'TmtThreatType.description' were kept, so the parser stays a faithful model of the file for later tasks.
 
 **Where:**
 - Never read in production code: 'TmtReportDiagram.surfaceGuid' ([extractTmtReportDiagrams/index.ts](../packages/threat-composer/src/utils/tmt/extractTmtReportDiagrams/index.ts#L20)), 'TmtThreat.key' and 'interactionKey' ([tmtModel.ts](../packages/threat-composer/src/utils/tmt/tmtModel.ts#L39-L47)), 'TmtThreatType.description', and 'TmtModel.version'.
