@@ -22,6 +22,10 @@ const fixture = (name: string) => readFileSync(join(__dirname, '../__fixtures__'
 describe('parseTmtModel - Sample_Threat_Model.tm7 (single DFD)', () => {
   const model = parseTmtModel(fixture('Sample_Threat_Model.tm7'));
 
+  test('reports model version 4.3', () => {
+    expect(model.version).toBe('4.3');
+  });
+
   test('extracts the single non-empty drawing surface with its GUID and name', () => {
     expect(model.surfaces).toHaveLength(1);
     expect(model.surfaces[0]).toMatchObject({
@@ -106,6 +110,7 @@ describe('parseTmtModel - minimal valid model', () => {
   const model = parseTmtModel(validMinimal);
 
   test('parses a minimal model and marks a surface with no elements as empty', () => {
+    expect(model.version).toBe('4.3');
     expect(model.surfaces).toEqual([
       { guid: '11111111-1111-1111-1111-111111111111', name: 'Empty Diagram', isEmpty: true },
     ]);

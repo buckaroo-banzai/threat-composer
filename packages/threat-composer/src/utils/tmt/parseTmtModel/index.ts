@@ -237,6 +237,7 @@ export const parseTmtModel = (xml: string, options: { maxChars?: number } = {}):
   }
 
   return {
+    version,
     metadata,
     surfaces,
     elementNames,

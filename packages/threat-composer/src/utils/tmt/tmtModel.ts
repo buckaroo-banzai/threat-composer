@@ -67,6 +67,7 @@ export interface TmtKnowledgeBase {
 }
 
 export interface TmtModel {
+  version: string; // TMT model format version; import supports only '4.3'
   metadata: TmtMetaInformation;
   surfaces: TmtDrawingSurface[]; // DrawingSurfaceList, in document order
   elementNames: Record<string, string>; // DFD element and data-flow GUID -> Name, across all surfaces

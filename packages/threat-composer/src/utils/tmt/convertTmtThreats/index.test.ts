@@ -27,6 +27,7 @@ const meta = (threat: TemplateThreatStatement, key: string) => threat.metadata?.
 
 const makeThreat = (over: Partial<TmtThreat>): TmtThreat => ({ id: 1, key: 'k', properties: {}, ...over });
 const makeModel = (over: Partial<TmtModel>): TmtModel => ({
+  version: '4.3',
   metadata: {},
   surfaces: [],
   elementNames: {},

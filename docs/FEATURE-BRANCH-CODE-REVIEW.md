@@ -20,11 +20,11 @@ Date: 2026-09-30. Branch head: '838c581'.
 | R5 | Reset the TMT import state in one place in 'FileImport' | Simplicity | Medium | Fixed 2026-10-01 ([fdc3879](https://github.com/buckaroo-banzai/threat-composer/commit/fdc38795ac3df8e96ecb9c2c084a519d3b0ec8cd)) |
 | R6 | Share the per-threat report fields between the Markdown and Word exports | Simplicity | Medium | Verified + Judgment |
 | R7 | Split the 150-line loop in 'convertTmtThreats' into named steps | Design | Medium | Judgment |
-| R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Partly done 2026-10-01 ([31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)): 'order', its sort, and 'version' removed; other fields kept by decision |
+| R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Partly done 2026-10-01 ([31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)): 'order' and its sort removed; 'version' restored because it documents the supported TMT format version; other fields kept by decision |
 | R9 | Trim TMT surface names once, at parse time | Simplicity | Low | Fixed 2026-10-01 ([31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)) |
 | R10 | Fix comments that break project rules (internal SDL ID, untagged forward reference, TODO format, spelling) | Comments | Low | Fixed 2026-10-01 ([febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717)) |
 | R11 | 'ImportErrors': duplicate React keys, a duplicated prop type, and wording when there are only warnings | Bug / Types | Low | Fixed 2026-10-01 ([c2d80fc](https://github.com/buckaroo-banzai/threat-composer/commit/c2d80fc3182543d64e7729aa1e796f1a13893419)) |
-| R12 | Remove two avoidable type casts and an 'any[]' | Types | Low | Fixed 2026-10-01 |
+| R12 | Remove two avoidable type casts and an 'any[]' | Types | Low | Fixed 2026-10-01 ([0a4b767](https://github.com/buckaroo-banzai/threat-composer/commit/0a4b767ea8e4186c6d885c9fc8ff253a0e373ae4)) |
 | R13 | Review the image-fetch guard's Microsoft-specific blocked ranges | Security / project fit | Low | Declined 2026-10-01: ranges kept because the problem also exists in other enterprise environments |
 | R14 | Revoke the object URL created for each exported image | Bug (memory) | Low | Fixed 2026-10-01 ([07198fb](https://github.com/buckaroo-banzai/threat-composer/commit/07198fbe9c23bad6bb85d9ed0b35335a8abc152f)) |
 | R15 | Remove internal story IDs from test names | Tests | Low | Fixed 2026-10-01 ([febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717)) |
@@ -126,7 +126,7 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R8: Unused TMT model fields and a no-op sort (Low, Verified)
 
-**Status (2026-10-01, commit [31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)):** by your decision, 'TmtDrawingSurface.order' (with its sort) and 'TmtModel.version' were removed, because they carry no information. 'surfaceGuid', 'TmtThreat.key', 'interactionKey', and 'TmtThreatType.description' were kept, so the parser stays a faithful model of the file for later tasks.
+**Status (2026-10-01, commit [31d7a9b](https://github.com/buckaroo-banzai/threat-composer/commit/31d7a9b16982d16e376f5202b46e0e8813b49189)):** by your decision, 'TmtDrawingSurface.order' (with its sort) was removed, because it always equalled the array position. 'TmtModel.version' was also removed in that commit, then restored in the next change: although it is always '4.3', it documents which TMT format version the import is meant to support. 'surfaceGuid', 'TmtThreat.key', 'interactionKey', and 'TmtThreatType.description' were kept, so the parser stays a faithful model of the file for later tasks.
 
 **Where:**
 - Never read in production code: 'TmtReportDiagram.surfaceGuid' ([extractTmtReportDiagrams/index.ts](../packages/threat-composer/src/utils/tmt/extractTmtReportDiagrams/index.ts#L20)), 'TmtThreat.key' and 'interactionKey' ([tmtModel.ts](../packages/threat-composer/src/utils/tmt/tmtModel.ts#L39-L47)), 'TmtThreatType.description', and 'TmtModel.version'.
@@ -162,7 +162,7 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R12: Avoidable casts (Low, Verified)
 
-**Status:** fixed 2026-10-01. 'values as string[]' is replaced by a type-guard filter, and the Word export's 'children' is typed with the docx element types. The final 'filled as TmtTemplateFields' cast remains: the object is built key by key from 'Object.entries', so TypeScript cannot infer its shape.
+**Status:** fixed 2026-10-01 in commit [0a4b767](https://github.com/buckaroo-banzai/threat-composer/commit/0a4b767ea8e4186c6d885c9fc8ff253a0e373ae4). 'values as string[]' is replaced by a type-guard filter, and the Word export's 'children' is typed with the docx element types. The final 'filled as TmtTemplateFields' cast remains: the object is built key by key from 'Object.entries', so TypeScript cannot infer its shape.
 
 - 'fillMappingFields' uses 'values as string[]' and 'filled as TmtTemplateFields' ([convertTmtThreats/index.ts](../packages/threat-composer/src/utils/tmt/convertTmtThreats/index.ts#L138-L140)). A type-guard filter ('(v): v is string => v !== undefined') removes the first cast.
 - 'const children: any[]' in the Word export's 'getThreats' can use the docx element types.

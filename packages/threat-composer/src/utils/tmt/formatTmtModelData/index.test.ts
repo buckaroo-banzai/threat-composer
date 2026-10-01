@@ -17,6 +17,7 @@ import { formatTmtModelData } from '.';
 import { TmtModel } from '../tmtModel';
 
 const makeModel = (over: Partial<TmtModel>): TmtModel => ({
+  version: '4.3',
   metadata: {},
   surfaces: [],
   elementNames: {},
