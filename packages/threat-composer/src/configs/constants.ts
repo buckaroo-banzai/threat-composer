@@ -39,10 +39,13 @@ export const IMAGE_BASE64_MAX_LENGTH = 1000000;
 export const IMAGE_URL_MAX_LENGTH = 2048;
 
 // Microsoft TMT import: upper bounds on untrusted input.
-// TODO: set these from real-world file sizes (see the import size-limit follow-up in the plan).
-export const MAX_TMT_FILE_BYTES = 20 * 1024 * 1024;
+// 25 MB matches the '.tm7' size limit enforced by a large real-world threat model repository.
+export const MAX_TM7_FILE_BYTES = 25 * 1024 * 1024;
 export const MAX_TM7_CHARS = 50 * 1024 * 1024;
-export const MAX_TMT_REPORT_CHARS = 50_000_000;
+// TODO: set the report limits from a real large report; 3x the model limit is estimated from the sample reports.
+export const MAX_TMT_REPORT_FILE_BYTES = 75 * 1024 * 1024;
+export const MAX_TMT_REPORT_CHARS = 75 * 1024 * 1024;
+// TODO: set from real-world diagram sizes (see the import size-limit follow-up in the plan).
 export const MAX_TMT_DIAGRAM_IMAGE_BYTES = 10_000_000;
 
 export const STORAGE_LOCAL_STORAGE = 'LocalStorage';

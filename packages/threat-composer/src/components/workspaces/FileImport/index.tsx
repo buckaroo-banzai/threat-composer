@@ -23,7 +23,7 @@ import SpaceBetween from '@cloudscape-design/components/space-between';
 import TextContent from '@cloudscape-design/components/text-content';
 import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import ImportErrors from './components/ImportErrors';
-import { MAX_TMT_FILE_BYTES } from '../../../configs';
+import { MAX_TM7_FILE_BYTES, MAX_TMT_REPORT_FILE_BYTES } from '../../../configs';
 import { DataExchangeFormat } from '../../../customTypes';
 import useImportExport from '../../../hooks/useExportImport';
 import { importTmtModel, TmtImportResult } from '../../../utils/tmt/importTmtModel';
@@ -122,9 +122,13 @@ const FileImport: FC<FileImportProps> = ({
       return undefined;
     }
     setError('');
-    const oversized = [tm7Files[0], reportFiles[0]].find((file) => file.size > MAX_TMT_FILE_BYTES);
+    const oversized = [
+      { file: tm7Files[0], maxBytes: MAX_TM7_FILE_BYTES },
+      { file: reportFiles[0], maxBytes: MAX_TMT_REPORT_FILE_BYTES },
+    ].find(({ file, maxBytes }) => file.size > maxBytes);
     if (oversized) {
-      setError(`"${oversized.name}" is too large (${Math.round(oversized.size / (1024 * 1024))} MB); the maximum is ${MAX_TMT_FILE_BYTES / (1024 * 1024)} MB per file.`);
+      const toMegabytes = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
+      setError(`"${oversized.file.name}" is too large (${toMegabytes(oversized.file.size)} MB); the maximum for this file is ${toMegabytes(oversized.maxBytes)} MB.`);
       return undefined;
     }
     setLoading(true);

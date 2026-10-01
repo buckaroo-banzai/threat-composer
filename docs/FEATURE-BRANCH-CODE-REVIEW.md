@@ -210,7 +210,7 @@ Several 'describe' names embed internal plan IDs, for example "(US-1-T2)" and "(
 | "Cache the regular expressions in 'matchesTemplate'" | At most two are compiled per threat; the cost is negligible next to the extra code. |
 | "Add comments explaining the null-prototype maps" | Each one already has such a comment. |
 | "Add JSDoc to test helpers" | Conflicts with the project's short-comment convention. |
-| "Move 'MAX_TMT_FILE_BYTES' or the unsaved-edit key strings into shared constants" | Each has one or two uses; a shared constant adds indirection without benefit. |
+| "Move 'MAX_TMT_FILE_BYTES' or the unsaved-edit key strings into shared constants" | Each has one or two uses; a shared constant adds indirection without benefit. Later superseded for the size limits: by your decision, all TMT import size limits moved into 'src/configs/constants.ts' (see R5), and the file limit was split into 'MAX_TM7_FILE_BYTES' and 'MAX_TMT_REPORT_FILE_BYTES'. |
 | "Generalize 'DataflowMigrationGate' for future schema changes" | Speculative; the step-based migration registry already allows for new versions. |
 | "Remove the single-step migration registry as over-engineering" | Keep it: it follows the project's schema-versioning principle (versions coexist, migrate at the boundary). |
 | "React index keys in 'ThreatStatementCard'" | The token array is derived and fixed for each render; index keys are correct here. |
