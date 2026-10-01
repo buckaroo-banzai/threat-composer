@@ -13,8 +13,8 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
+import { CURRENT_SCHEMA_VERSION } from '../../../configs';
 import { DataExchangeFormat } from '../../../customTypes';
-import { CURRENT_SCHEMA_VERSION } from '../../migrateDataExchange';
 import { convertTmtThreats, TmtUnconvertibleThreat } from '../convertTmtThreats';
 import { extractTmtReportDiagrams } from '../extractTmtReportDiagrams';
 import { formatTmtModelData } from '../formatTmtModelData';

@@ -14,13 +14,14 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { useCallback, FC, PropsWithChildren, useEffect, useRef } from 'react';
+import { CURRENT_SCHEMA_VERSION } from '../../../configs';
 import { useWorkspacesContext } from '../../../contexts';
 import { useMigrationConsentContext } from '../../../contexts/MigrationConsentContext';
 import { DataExchangeFormat } from '../../../customTypes';
 import useExportImport, { PLACEHOLDER_EXCHANGE_DATA } from '../../../hooks/useExportImport';
 import useRemoveData from '../../../hooks/useRemoveData';
 import convertToMarkdown from '../../../utils/convertToMarkdown';
-import { dataExchangeNeedsMigration, CURRENT_SCHEMA_VERSION } from '../../../utils/migrateDataExchange';
+import { dataExchangeNeedsMigration } from '../../../utils/migrateToCurrentSchema';
 import { applyUnsavedEdits, clearAllUnsavedEdits } from '../../../utils/unsavedEdits';
 
 /**

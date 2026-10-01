@@ -13,11 +13,10 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
+import { CURRENT_SCHEMA_VERSION } from '../../configs';
 import { DataExchangeFormat, DataflowDiagram, DataflowInfo } from '../../customTypes';
 
 export const DEFAULT_DATAFLOW_DIAGRAM_NAME = 'Diagram 1';
-
-export const CURRENT_SCHEMA_VERSION = 1.1;
 
 // The schema version indicated by a legacy dataflow that still carries the removed 'image' key.
 export const LEGACY_DATAFLOW_SCHEMA_VERSION = 1.0;
@@ -28,7 +27,7 @@ export interface LegacyDataflowInfo {
   image?: string;
 }
 
-type DataExchangeMigrationInput = Omit<DataExchangeFormat, 'schema' | 'dataflow'> & {
+type UnmigratedDataExchangeFormat = Omit<DataExchangeFormat, 'schema' | 'dataflow'> & {
   schema: number;
   dataflow?: DataflowInfo | LegacyDataflowInfo;
 };
@@ -76,14 +75,14 @@ export const dataflowInfoNeedsMigration = (dataflow?: DataflowInfo | LegacyDataf
 
 // Single-step schema migrations. Each entry migrates a document from its key version
 // to `to` (the immediately following version). Add a new schema version by registering
-// one more single-step entry; migrateToCurrent composes the chain, so no call site changes.
+// one more single-step entry; migrateToCurrentSchema composes the chain, so no call site changes.
 // TODO: US-3-T3 retire the float version keys (1.0/1.1) in favor of integer/semver.
 interface SchemaMigrationStep {
   to: number;
-  migrate: (input: DataExchangeMigrationInput) => DataExchangeMigrationInput;
+  migrate: (input: UnmigratedDataExchangeFormat) => UnmigratedDataExchangeFormat;
 }
 
-const migrateSchema1_0To1_1 = (input: DataExchangeMigrationInput): DataExchangeMigrationInput => {
+const migrateSchema1_0To1_1 = (input: UnmigratedDataExchangeFormat): UnmigratedDataExchangeFormat => {
   const { dataflow, ...rest } = input;
   return dataflow ? { ...rest, dataflow: migrateDataflowInfo(dataflow) } : { ...rest };
 };
@@ -92,7 +91,7 @@ const SCHEMA_MIGRATIONS: Partial<Record<number, SchemaMigrationStep>> = {
   1.0: { to: 1.1, migrate: migrateSchema1_0To1_1 },
 };
 
-export const SUPPORTED_SCHEMA_VERSIONS = [
+const SUPPORTED_SCHEMA_VERSIONS = [
   ...Object.keys(SCHEMA_MIGRATIONS).map(Number),
   CURRENT_SCHEMA_VERSION,
 ];
@@ -108,7 +107,7 @@ export const dataExchangeNeedsMigration = (input: { schema?: number }): boolean 
 // Shared entry point for every path that ingests a stored/imported model
 // (persistence-load, file-import, IDE injection): walk any supported version up to
 // current via single steps. Validation is a separate concern applied by the caller.
-export const migrateToCurrent = (input: DataExchangeMigrationInput): DataExchangeFormat => {
+const migrateToCurrentSchema = (input: UnmigratedDataExchangeFormat): DataExchangeFormat => {
   if (!SUPPORTED_SCHEMA_VERSIONS.includes(input.schema)) {
     throw new Error(`Unsupported Schema version: ${input.schema}`);
   }
@@ -125,6 +124,4 @@ export const migrateToCurrent = (input: DataExchangeMigrationInput): DataExchang
   return doc as DataExchangeFormat;
 };
 
-const migrateDataExchange = (input: DataExchangeMigrationInput): DataExchangeFormat => migrateToCurrent(input);
-
-export default migrateDataExchange;
+export default migrateToCurrentSchema;

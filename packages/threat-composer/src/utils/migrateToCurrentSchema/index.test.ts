@@ -13,16 +13,16 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
-import migrateDataExchange, { DEFAULT_DATAFLOW_DIAGRAM_NAME, dataExchangeNeedsMigration, dataflowInfoNeedsMigration, migrateDataflowInfo, migrateToCurrent } from '.';
+import migrateToCurrentSchema, { DEFAULT_DATAFLOW_DIAGRAM_NAME, dataExchangeNeedsMigration, dataflowInfoNeedsMigration, migrateDataflowInfo } from '.';
 import { DataExchangeFormat, DataflowInfo } from '../../customTypes';
 import threatComposer from '../../data/workspaceExamples/ThreatComposer.tc.json';
 import validateData from '../validateData';
 
 const SAMPLE_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HBSdAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
-describe('migrateDataExchange - schema 1.0 -> 1.1', () => {
+describe('migrateToCurrentSchema - schema 1.0 -> 1.1', () => {
   test('moves a single dataflow.image into diagrams[0] and strips the legacy image key', () => {
-    const result = migrateDataExchange({
+    const result = migrateToCurrentSchema({
       schema: 1.0,
       dataflow: { image: SAMPLE_IMAGE, description: 'flow desc' },
     });
@@ -37,7 +37,7 @@ describe('migrateDataExchange - schema 1.0 -> 1.1', () => {
   });
 
   test('migrates a description-only dataflow into a single text-only diagram', () => {
-    const result = migrateDataExchange({
+    const result = migrateToCurrentSchema({
       schema: 1.0,
       dataflow: { description: 'flow desc only' },
     });
@@ -50,20 +50,20 @@ describe('migrateDataExchange - schema 1.0 -> 1.1', () => {
   });
 
   test('leaves dataflow undefined when the source has none', () => {
-    const result = migrateDataExchange({ schema: 1.0, applicationInfo: {} });
+    const result = migrateToCurrentSchema({ schema: 1.0, applicationInfo: {} });
 
     expect(result.schema).toBe(1.1);
     expect(result.dataflow).toBeUndefined();
   });
 
   test('produces output that passes schema 1.1 validation for the real 1.0 fixture', () => {
-    const result = migrateDataExchange(threatComposer as unknown as DataExchangeFormat);
+    const result = migrateToCurrentSchema(threatComposer as unknown as DataExchangeFormat);
     expect(validateData(result).success).toBe(true);
     expect(result.dataflow?.diagrams?.length).toBeGreaterThanOrEqual(1);
   });
 });
 
-describe('migrateDataExchange - schema 1.1 passthrough', () => {
+describe('migrateToCurrentSchema - schema 1.1 passthrough', () => {
   test('is idempotent for an already-1.1 document', () => {
     const already: DataExchangeFormat = {
       schema: 1.1,
@@ -72,42 +72,16 @@ describe('migrateDataExchange - schema 1.1 passthrough', () => {
       },
     };
 
-    const result = migrateDataExchange(already);
+    const result = migrateToCurrentSchema(already);
     expect(result.dataflow?.diagrams).toHaveLength(1);
     expect(result.dataflow?.diagrams?.[0].id).toBe('11111111-1111-4111-8111-111111111111');
     expect((result.dataflow as Record<string, unknown>).image).toBeUndefined();
   });
 });
 
-describe('migrateDataExchange - unsupported versions', () => {
+describe('migrateToCurrentSchema - unsupported versions', () => {
   test('throws for an unsupported schema version', () => {
-    expect(() => migrateDataExchange({ schema: 2 } as DataExchangeFormat)).toThrow('Unsupported Schema version');
-  });
-});
-
-describe('migrateToCurrent - shared entry point', () => {
-  test('routes a schema 1.0 document through the registry to 1.1', () => {
-    const result = migrateToCurrent({
-      schema: 1.0,
-      dataflow: { image: SAMPLE_IMAGE, description: 'flow desc' },
-    });
-
-    expect(result.schema).toBe(1.1);
-    expect(result.dataflow?.diagrams).toHaveLength(1);
-    expect((result.dataflow as Record<string, unknown>).image).toBeUndefined();
-  });
-
-  test('is a passthrough for an already-current document', () => {
-    const already: DataExchangeFormat = {
-      schema: 1.1,
-      dataflow: { diagrams: [] },
-    };
-
-    expect(migrateToCurrent(already)).toEqual(already);
-  });
-
-  test('throws for an unsupported schema version', () => {
-    expect(() => migrateToCurrent({ schema: 2 } as DataExchangeFormat)).toThrow('Unsupported Schema version');
+    expect(() => migrateToCurrentSchema({ schema: 2 } as DataExchangeFormat)).toThrow('Unsupported Schema version');
   });
 });
 

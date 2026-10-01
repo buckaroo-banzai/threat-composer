@@ -14,8 +14,8 @@ Date: 2026-09-30. Branch head: '838c581'.
 | ID | Recommendation | Category | Impact | Confidence |
 | --- | --- | --- | --- | --- |
 | R1 | Fix the 'save' after **Upgrade** in the IDE path: it sends the workspace as it was before the import | Bug (data loss) | High | Fixed 2026-10-01 ([ace4898](https://github.com/buckaroo-banzai/threat-composer/commit/ace4898b24bf177849e80c57df39b7a74e166ba5)) |
-| R2 | Define the schema version (1.1) once instead of three times | Simplicity | Medium | Verified |
-| R3 | Use a single name for the migration entry point, and drop the repeated version check | Simplicity | Medium | Verified |
+| R2 | Define the schema version (1.1) once instead of three times | Simplicity | Medium | Fixed 2026-10-01 |
+| R3 | Use a single name for the migration entry point, and drop the repeated version check | Simplicity | Medium | Fixed 2026-10-01 |
 | R4 | Extract the shared held-edit logic of 'CommentsEdit' and 'CustomMetadataEditor' | Simplicity | Medium | Verified + Judgment |
 | R5 | Reset the TMT import state in one place in 'FileImport' | Simplicity | Medium | Verified |
 | R6 | Share the per-threat report fields between the Markdown and Word exports | Simplicity | Medium | Verified + Judgment |
@@ -23,7 +23,7 @@ Date: 2026-09-30. Branch head: '838c581'.
 | R8 | Remove unused TMT model fields and a no-op sort | Simplicity | Low | Verified |
 | R9 | Trim TMT surface names once, at parse time | Simplicity | Low | Verified |
 | R10 | Fix comments that break project rules (internal SDL ID, untagged forward reference, TODO format, spelling) | Comments | Low | Fixed 2026-10-01 ([febeb2e](https://github.com/buckaroo-banzai/threat-composer/commit/febeb2e8c355c59805c1c8832938b3c9a74d4717)) |
-| R11 | 'ImportErrors': duplicate React keys, a duplicated prop type, and wording when there are only warnings | Bug / Types | Low | Fixed 2026-10-01 |
+| R11 | 'ImportErrors': duplicate React keys, a duplicated prop type, and wording when there are only warnings | Bug / Types | Low | Fixed 2026-10-01 ([c2d80fc](https://github.com/buckaroo-banzai/threat-composer/commit/c2d80fc3182543d64e7729aa1e796f1a13893419)) |
 | R12 | Remove two avoidable type casts and an 'any[]' | Types | Low | Verified |
 | R13 | Review the image-fetch guard's Microsoft-specific blocked ranges | Security / project fit | Low | Declined 2026-10-01: ranges kept because the problem also exists in other enterprise environments |
 | R14 | Revoke the object URL created for each exported image | Bug (memory) | Low | Fixed 2026-10-01 ([07198fb](https://github.com/buckaroo-banzai/threat-composer/commit/07198fbe9c23bad6bb85d9ed0b35335a8abc152f)) |
@@ -57,6 +57,8 @@ I recommend (a), followed by a real VS Code check: open a 1.0 file, choose **Upg
 
 ### R2: The schema version is hard-coded three times (Medium, Verified)
 
+**Status:** fixed 2026-10-01. 'CURRENT_SCHEMA_VERSION' is defined once, in 'src/configs/constants.ts'.
+
 **Where:**
 - [useExportImport/index.ts](../packages/threat-composer/src/hooks/useExportImport/index.ts#L35) has 'const SCHEMA_VERSION = 1.1'.
 - [dataExchange.ts](../packages/threat-composer/src/customTypes/dataExchange.ts#L28) has 'z.number().max(1.1)'.
@@ -67,6 +69,8 @@ I recommend (a), followed by a real VS Code check: open a 1.0 file, choose **Upg
 **Suggested change:** move 'CURRENT_SCHEMA_VERSION' into 'src/configs' and import it in all three places. A 'configs' location avoids an import cycle, because 'customTypes' would otherwise import from 'utils', which imports 'customTypes'.
 
 ### R3: Two names for one migration entry point, and a repeated check (Medium, Verified)
+
+**Status:** fixed 2026-10-01. By your decision, the single name is 'migrateToCurrentSchema' (module folder renamed to match), and its input type is now 'UnmigratedDataExchangeFormat'. The supported-version check is kept only in the migration function, which every load path calls. Three tests that duplicated others under the old second name were removed. The links below point to the old file locations.
 
 **Where:**
 - 'migrateToCurrent' ([migrateDataExchange/index.ts](../packages/threat-composer/src/utils/migrateDataExchange/index.ts#L111)) and the default export 'migrateDataExchange' ([line 128](../packages/threat-composer/src/utils/migrateDataExchange/index.ts#L128)) are the same function under two names. Production code imports the default; only the tests use 'migrateToCurrent'.
@@ -142,7 +146,7 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 
 ### R11: 'ImportErrors' details (Low, Verified)
 
-**Status:** fixed 2026-10-01. List items are keyed by position, the prop type reuses 'TmtUnconvertibleThreat', and when there are only warnings the overlay is headed "Review import warnings" and says "Some threats were imported with adjustments. Review them below, then abort or continue." No failing unit test was written for the duplicate keys: reproducing them requires rendering the Cloudscape modal, which this package has no test setup for; the change is checked manually.
+**Status:** fixed 2026-10-01 in commit [c2d80fc](https://github.com/buckaroo-banzai/threat-composer/commit/c2d80fc3182543d64e7729aa1e796f1a13893419). List items are keyed by position, the prop type reuses 'TmtUnconvertibleThreat', and when there are only warnings the overlay is headed "Review import warnings" and says "Some threats were imported with adjustments. Review them below, then abort or continue." No failing unit test was written for the duplicate keys: reproducing them requires rendering the Cloudscape modal, which this package has no test setup for; the change is checked manually.
 
 **Where:** [ImportErrors/index.tsx](../packages/threat-composer/src/components/workspaces/FileImport/components/ImportErrors/index.tsx#L25-L54).
 

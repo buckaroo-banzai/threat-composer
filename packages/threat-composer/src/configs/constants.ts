@@ -17,6 +17,9 @@ export const DEFAULT_WORKSPACE_ID = 'default';
 export const DEFAULT_WORKSPACE_LABEL = 'Default';
 export const DEFAULT_NEW_ENTITY_ID = 'new';
 
+// The data exchange schema version this build reads and writes.
+export const CURRENT_SCHEMA_VERSION = 1.1;
+
 export const EXAMPLES_WORKSPACE_ID_PREFIX = 'EXAMPLE_';
 export const EXAMPLES_SECTION_WORKSPACE_LABEL = 'Examples';
 

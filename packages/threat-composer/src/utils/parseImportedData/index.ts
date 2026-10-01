@@ -14,7 +14,7 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { DataExchangeFormat, TemplateThreatStatement } from '../../customTypes';
-import migrateDataExchange, { SUPPORTED_SCHEMA_VERSIONS } from '../migrateDataExchange';
+import migrateToCurrentSchema from '../migrateToCurrentSchema';
 import sanitizeHtml from '../sanitizeHtml';
 import validateData from '../validateData';
 
@@ -33,12 +33,8 @@ const parseImportedData = (data: any): DataExchangeFormat => {
     };
   }
 
-  if (!parsedData.schema || !SUPPORTED_SCHEMA_VERSIONS.includes(parsedData.schema)) {
-    throw new Error('Unsupported Schema version');
-  }
-
-  // Migrate legacy schema versions (e.g. 1.0 -> 1.1) before strict validation.
-  const migratedData = migrateDataExchange(parsedData);
+  // Migrate legacy schema versions (e.g. 1.0 -> 1.1) before strict validation; throws on an unsupported version.
+  const migratedData = migrateToCurrentSchema(parsedData);
 
   const validatedData = validateData(migratedData);
 

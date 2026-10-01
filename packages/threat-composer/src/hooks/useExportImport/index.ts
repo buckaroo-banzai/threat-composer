@@ -14,6 +14,7 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { useCallback } from 'react';
+import { CURRENT_SCHEMA_VERSION } from '../../configs';
 import { useWorkspacesContext } from '../../contexts';
 import { useApplicationInfoContext } from '../../contexts/ApplicationContext/context';
 import { useArchitectureInfoContext } from '../../contexts/ArchitectureContext/context';
@@ -32,10 +33,8 @@ import getExportFileName from '../../utils/getExportFileName';
 import parseImportedDataUtil from '../../utils/parseImportedData';
 import recalculateThreatData from '../../utils/recalculateThreatData';
 
-const SCHEMA_VERSION = 1.1;
-
 export const PLACEHOLDER_EXCHANGE_DATA = {
-  schema: SCHEMA_VERSION,
+  schema: CURRENT_SCHEMA_VERSION,
 };
 
 export const PLACEHOLDER_EXCHANGE_DATA_FOR_WORKSPACE = {
@@ -74,7 +73,7 @@ const useImportExport = () => {
     const cleanedThreats = cleanupThreatData(statementList);
     if (composerMode === 'Full') {
       const baseData = {
-        schema: SCHEMA_VERSION,
+        schema: CURRENT_SCHEMA_VERSION,
         applicationInfo,
         architecture: architectureInfo,
         dataflow: dataflowInfo,
@@ -97,7 +96,7 @@ const useImportExport = () => {
     }
 
     return {
-      schema: SCHEMA_VERSION,
+      schema: CURRENT_SCHEMA_VERSION,
       threats: cleanedThreats,
     };
   }, [composerMode, currentWorkspace, applicationInfo,
@@ -115,7 +114,7 @@ const useImportExport = () => {
   const exportSelectedThreats = useCallback((selectedStatementList: TemplateThreatStatement[]) => {
     const exportFileName = getExportFileName(composerMode, true, currentWorkspace);
     downloadObjectAsJson({
-      schema: SCHEMA_VERSION,
+      schema: CURRENT_SCHEMA_VERSION,
       workspace: currentWorkspace || undefined,
       threats: selectedStatementList,
     }, exportFileName);

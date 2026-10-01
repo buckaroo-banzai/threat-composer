@@ -24,7 +24,7 @@ import { FC, useMemo, useRef, useState } from 'react';
 import { SINGLE_FIELD_INPUT_SMALL_MAX_LENGTH } from '../../../configs';
 import { useDataflowInfoContext } from '../../../contexts/DataflowContext/context';
 import { BaseImageInfo, DataflowDiagram, DataflowDiagramSchema, EditableComponentBaseProps } from '../../../customTypes';
-import { DEFAULT_DATAFLOW_DIAGRAM_NAME } from '../../../utils/migrateDataExchange';
+import { DEFAULT_DATAFLOW_DIAGRAM_NAME } from '../../../utils/migrateToCurrentSchema';
 import BaseDiagramInfo, { BaseDiagramInfoHandle } from '../../generic/BaseDiagramInfo';
 
 const nextDiagramName = (diagrams: DataflowDiagram[]): string => {

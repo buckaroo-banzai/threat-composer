@@ -22,10 +22,11 @@ import { DataflowInfoSchema } from './dataflow';
 import { MitigationSchema, MitigationLinkSchema } from './mitigations';
 import { TemplateThreatStatementSchema } from './threats';
 import { WorkspaceSchema, Workspace } from './workspaces';
+import { CURRENT_SCHEMA_VERSION } from '../configs';
 import { EventHandler } from '../utils/EventController';
 
 export const DataExchangeFormatSchema = z.object({
-  schema: z.number().max(1.1).describe('Schema version identifier'),
+  schema: z.number().max(CURRENT_SCHEMA_VERSION).describe('Schema version identifier'),
   workspace: WorkspaceSchema.optional().meta({ internal: true }).describe('Workspace configuration and metadata. Reserved for backwards compatibility.'),
   applicationInfo: ApplicationInfoSchema.optional().describe('Information about the application being threat modeled'),
   architecture: ArchitectureInfoSchema.optional().describe('System architecture information about the application being threat modeled'),

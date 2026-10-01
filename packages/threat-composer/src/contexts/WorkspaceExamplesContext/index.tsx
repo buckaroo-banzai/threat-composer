@@ -18,7 +18,7 @@ import { FC, PropsWithChildren, useCallback, useMemo } from 'react';
 import { WorkspaceExamplesContext, useWorkspaceExamplesContext } from './context';
 import { EXAMPLES_WORKSPACE_ID_PREFIX, STORAGE_LOCAL_STATE } from '../../configs';
 import workspaceExamplesData from '../../data/workspaceExamples/workspaceExamples';
-import migrateDataExchange from '../../utils/migrateDataExchange';
+import migrateToCurrentSchema from '../../utils/migrateToCurrentSchema';
 
 const WorkspaceExamplesContextProvider: FC<PropsWithChildren<{}>> = ({
   children,
@@ -30,7 +30,7 @@ const WorkspaceExamplesContextProvider: FC<PropsWithChildren<{}>> = ({
       ...x,
       id: `${EXAMPLES_WORKSPACE_ID_PREFIX}${x.name.replace(/\s/g, '')}`,
       storageType: STORAGE_LOCAL_STATE,
-      value: migrateDataExchange(x.value),
+      value: migrateToCurrentSchema(x.value),
     }));
   }, [workspaceExamplesData]);
 

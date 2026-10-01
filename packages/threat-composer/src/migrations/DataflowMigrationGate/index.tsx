@@ -15,12 +15,12 @@
  ******************************************************************************************************************** */
 import { FC, PropsWithChildren, useEffect, useRef, useState } from 'react';
 import useLocalStorageState from 'use-local-storage-state';
-import { STORAGE_LOCAL_STORAGE } from '../../configs';
+import { CURRENT_SCHEMA_VERSION, STORAGE_LOCAL_STORAGE } from '../../configs';
 import { getLocalStorageKey } from '../../contexts/DataflowContext/components/LocalStorageContextProvider';
 import { useMigrationConsentContext } from '../../contexts/MigrationConsentContext';
 import { DataflowInfo } from '../../customTypes';
 import useWorkspaceStorage from '../../hooks/useWorkspaceStorage';
-import { dataflowInfoNeedsMigration, migrateDataflowInfo, LegacyDataflowInfo, CURRENT_SCHEMA_VERSION, LEGACY_DATAFLOW_SCHEMA_VERSION } from '../../utils/migrateDataExchange';
+import { dataflowInfoNeedsMigration, migrateDataflowInfo, LegacyDataflowInfo, LEGACY_DATAFLOW_SCHEMA_VERSION } from '../../utils/migrateToCurrentSchema';
 
 export interface DataflowMigrationGateProps {
   workspaceId: string | null;

@@ -14,9 +14,9 @@
   limitations under the License.
  ******************************************************************************************************************** */
 import { useCallback } from 'react';
+import { CURRENT_SCHEMA_VERSION } from '../../configs';
 import { useMigrationConsentContext } from '../../contexts/MigrationConsentContext';
 import { useWorkspacesContext } from '../../contexts/WorkspacesContext';
-import { CURRENT_SCHEMA_VERSION } from '../../utils/migrateDataExchange';
 
 /**
  * Guards an action that would persist a migrated (current-schema) document. When a below-current

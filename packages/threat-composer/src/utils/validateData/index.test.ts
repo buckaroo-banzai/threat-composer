@@ -17,10 +17,10 @@ import validateData from '.';
 import { DataExchangeFormat } from '../../customTypes';
 import genAIChatbot from '../../data/workspaceExamples/GenAIChatbot.tc.json';
 import threatComposer from '../../data/workspaceExamples/ThreatComposer.tc.json';
-import migrateDataExchange from '../migrateDataExchange';
+import migrateToCurrentSchema from '../migrateToCurrentSchema';
 
 // Both schema versions coexist: raw 1.0 fixtures document the legacy
-// on-disk shape and are imported into 1.1 via migrateDataExchange before strict
+// on-disk shape and are imported into 1.1 via migrateToCurrentSchema before strict
 // validation. validateData itself validates against the current (1.1) schema.
 describe('validateData - schema 1.0 and 1.1', () => {
   test('the built-in Threat Composer fixture is schema version 1.0 on disk', () => {
@@ -36,8 +36,8 @@ describe('validateData - schema 1.0 and 1.1', () => {
   });
 
   test('accepts the built-in fixtures after 1.0 -> 1.1 migration', () => {
-    expect(validateData(migrateDataExchange(threatComposer as unknown as DataExchangeFormat)).success).toBe(true);
-    expect(validateData(migrateDataExchange(genAIChatbot as unknown as DataExchangeFormat)).success).toBe(true);
+    expect(validateData(migrateToCurrentSchema(threatComposer as unknown as DataExchangeFormat)).success).toBe(true);
+    expect(validateData(migrateToCurrentSchema(genAIChatbot as unknown as DataExchangeFormat)).success).toBe(true);
   });
 
   describe('dataflow shape', () => {
@@ -51,7 +51,7 @@ describe('validateData - schema 1.0 and 1.1', () => {
     });
 
     test('migrates the 1.0 image into a one-item 1.1 diagrams array', () => {
-      const migrated = migrateDataExchange(threatComposer as unknown as DataExchangeFormat);
+      const migrated = migrateToCurrentSchema(threatComposer as unknown as DataExchangeFormat);
       expect(migrated.dataflow?.diagrams).toHaveLength(1);
       expect(migrated.dataflow?.diagrams?.[0].image?.startsWith('data:image')).toBe(true);
       expect((migrated.dataflow as Record<string, unknown>).image).toBeUndefined();
