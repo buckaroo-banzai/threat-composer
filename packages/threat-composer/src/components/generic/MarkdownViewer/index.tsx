@@ -18,13 +18,17 @@ import Icon from '@cloudscape-design/components/icon';
 import TextContent from '@cloudscape-design/components/text-content';
 import * as awsui from '@cloudscape-design/design-tokens';
 import { css } from '@emotion/react';
-import { FC } from 'react';
+import { FC, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import frontmatter from 'remark-frontmatter';
 import gfm from 'remark-gfm';
 
 const externalPattern = /^((https?):\/\/)/;
+
+const REMARK_PLUGINS = [gfm, frontmatter];
+const RAW_HTML_PLUGINS = [rehypeRaw];
+const NO_PLUGINS: [] = [];
 
 export interface MarkdownViewerProps {
   children: string;
@@ -107,6 +111,7 @@ const components = {
 
 /**
  * MarkdownViewer renders content with Markdown format.
+ * Memoized because parsing a large document is slow, and its parent may re-render with unchanged text.
  */
 const MarkdownViewer: FC<MarkdownViewerProps> = ({
   allowHtml = false,
@@ -116,10 +121,15 @@ const MarkdownViewer: FC<MarkdownViewerProps> = ({
   return (
     <div css={styles}>
       <TextContent {...props}>
-        <ReactMarkdown remarkPlugins={[gfm, frontmatter]} rehypePlugins={allowHtml ? [rehypeRaw] : []} components={components} children={children} />
+        <ReactMarkdown
+          remarkPlugins={REMARK_PLUGINS}
+          rehypePlugins={allowHtml ? RAW_HTML_PLUGINS : NO_PLUGINS}
+          components={components}
+          children={children}
+        />
       </TextContent>
     </div>
   );
 };
 
-export default MarkdownViewer;
+export default memo(MarkdownViewer);
