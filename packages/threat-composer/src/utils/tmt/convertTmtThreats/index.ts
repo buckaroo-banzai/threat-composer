@@ -20,6 +20,7 @@ import {
   METADATA_KEY_PRIORITY,
   METADATA_KEY_STRIDE,
   FREE_TEXT_INPUT_MAX_LENGTH,
+  FREE_TEXT_INPUT_SMALL_MAX_LENGTH,
   SINGLE_FIELD_INPUT_MAX_LENGTH,
   SINGLE_FIELD_INPUT_SMALL_MAX_LENGTH,
   THREAT_STATUS_IDENTIFIED,
@@ -29,7 +30,7 @@ import {
 import { TemplateThreatStatement, TemplateThreatStatementSchema } from '../../../customTypes';
 import renderThreatStatement from '../../renderThreatStatement';
 import sanitizeHtml from '../../sanitizeHtml';
-import { TMT_TEMPLATE_MAPPINGS, TmtTemplateFields } from '../templateMappings';
+import { TMT_TEMPLATE_MAPPINGS, TmtTemplateFields, TmtTemplateMitigation } from '../templateMappings';
 import { TmtModel, TmtThreat, TmtThreatType } from '../tmtModel';
 
 type MetadataEntry = { key: string; value: string | string[] };
@@ -40,10 +41,17 @@ export interface TmtUnconvertibleThreat {
   reason: string;
 }
 
+/** The mitigation texts to link to one converted threat, identified by its Threat Composer id. */
+export interface TmtThreatMitigations {
+  threatId: string;
+  contents: string[];
+}
+
 export interface TmtThreatConversionResult {
   threats: TemplateThreatStatement[];
   unconvertible: TmtUnconvertibleThreat[];
   warnings: string[];
+  mitigationsByThreat: TmtThreatMitigations[];
 }
 
 // Mirror the Threat Composer schema caps so we can report an over-length field as a clear, specific
@@ -51,6 +59,9 @@ export interface TmtThreatConversionResult {
 // TemplateThreatStatementSchema.statement and the custom-metadata key cap in MetadataSchemaThreats.
 const STATEMENT_MAX_LENGTH = SINGLE_FIELD_INPUT_MAX_LENGTH * 7;
 const METADATA_KEY_MAX_LENGTH = SINGLE_FIELD_INPUT_SMALL_MAX_LENGTH;
+const MITIGATION_CONTENT_MAX_LENGTH = FREE_TEXT_INPUT_SMALL_MAX_LENGTH;
+// Longer texts go straight to metadata without link flattening, whose run time grows with the square of the text length; 4x leaves room for link markup that flattening removes.
+const MITIGATION_SOURCE_MAX_LENGTH = MITIGATION_CONTENT_MAX_LENGTH * 4;
 
 // Not schema caps: bound untrusted input so a crafted file cannot stall rendering. Real threats carry at most ~15 entries.
 const METADATA_VALUE_MAX_LENGTH = FREE_TEXT_INPUT_MAX_LENGTH;
@@ -78,11 +89,13 @@ const STRIDE_LETTERS = new Set(['S', 'T', 'R', 'I', 'D', 'E']);
 
 // Threat properties consumed by dedicated mappings below, so they are not repeated as custom:TMT <label>.
 const CONSUMED_PROPERTIES = new Set(['Title', 'UserThreatDescription', 'InteractionString', 'StateInformation', 'Priority']);
+const POSSIBLE_MITIGATIONS_PROPERTY = 'PossibleMitigations';
 
 type ElementRole = 'source' | 'target' | 'flow';
 type ElementNames = Partial<Record<ElementRole, string>>;
 type StatementFields = TmtTemplateFields & Pick<TemplateThreatStatement, 'customTemplate'>;
-type ComposedStatement = { fields: StatementFields; warning?: string } | { reason: string };
+type ComposedStatement = { fields: StatementFields; curated: boolean; warning?: string } | { reason: string };
+type ThreatMitigationSelection = { contents: string[]; propertyConsumed: boolean; warning?: string };
 
 const PLACEHOLDER = /\{(source|target|flow)\.name\}/gi;
 const PLACEHOLDER_PART = /(\{(?:source|target|flow)\.name\})/i;
@@ -155,7 +168,7 @@ const composeStatement = (
   if (mapping && matchesTemplate(title, mapping.title, names) && matchesTemplate(description, mapping.template, names)) {
     const fields = fillMappingFields(mapping.fields, names);
     if (fields && GRAMMAR_FIELDS_SCHEMA.safeParse(sanitizeHtml(fields)).success) {
-      return { fields };
+      return { fields, curated: true };
     }
     fallbackCause = 'its curated template mapping exceeded a Threat Composer field limit';
   }
@@ -169,6 +182,7 @@ const composeStatement = (
     if (filled && sanitizeHtml(filled).length <= SINGLE_FIELD_INPUT_MAX_LENGTH) {
       return {
         fields: { threatAction: filled, customTemplate: SINGLE_FIELD_TEMPLATE },
+        curated: false,
         warning: `TMT threat ${threat.id}: ${fallbackCause}, so its statement is the TMT ${label} as written`,
       };
     }
@@ -181,7 +195,62 @@ const composeStatement = (
   };
 };
 
-const buildThreatMetadata = (threat: TmtThreat, model: TmtModel, category: string | undefined): MetadataEntry[] => {
+const formatMitigation = (mitigation: TmtTemplateMitigation) =>
+  (mitigation.references?.length ? `${mitigation.content} Refer: ${mitigation.references.join(' ')}` : mitigation.content);
+
+const LINK = /<a\b([^>]*)>([^<]*)<\/a>/gi;
+const HREF = /(?:^|\s)href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>`]+))/i;
+
+// TMT writes links as HTML anchors; keep the link text, and the URL when it differs from the text.
+const flattenLinks = (text: string) => text.replace(LINK, (_anchor: string, attributes: string, linkText: string) => {
+  const href = HREF.exec(attributes);
+  const url = href?.[1] ?? href?.[2] ?? href?.[3];
+  return !url || url === linkText ? linkText : `${linkText} (${url})`;
+});
+
+// Curated mitigations apply only to unedited knowledge-base text: the Azure knowledge base's Possible Mitigation(s)
+// property, or for the default knowledge base the advice in a matching description. Other text becomes one mitigation.
+const selectThreatMitigations = (threat: TmtThreat, statementCurated: boolean): ThreatMitigationSelection => {
+  const mapping = threat.typeId ? MAPPINGS_BY_TYPE_ID.get(threat.typeId) : undefined;
+  const possibleMitigations = threat.properties[POSSIBLE_MITIGATIONS_PROPERTY]?.trim();
+  if (mapping && mapping.possibleMitigations !== undefined && possibleMitigations === mapping.possibleMitigations) {
+    return { contents: mapping.mitigations.map(formatMitigation), propertyConsumed: true };
+  }
+  if (mapping && mapping.possibleMitigations === undefined && statementCurated) {
+    return { contents: mapping.mitigations.map(formatMitigation), propertyConsumed: false };
+  }
+  if (!possibleMitigations) {
+    return { contents: [], propertyConsumed: false };
+  }
+  const content = possibleMitigations.length <= MITIGATION_SOURCE_MAX_LENGTH ? flattenLinks(possibleMitigations).trim() : undefined;
+  const storedContent: string | undefined = content === undefined ? undefined : sanitizeHtml(content);
+  if (storedContent !== undefined && !storedContent.trim()) {
+    return {
+      contents: [],
+      propertyConsumed: false,
+      warning: `TMT threat ${threat.id}: its Possible Mitigation(s) text has no text outside HTML markup, so it was kept as threat metadata instead of a mitigation`,
+    };
+  }
+  if (content !== undefined && storedContent !== undefined && storedContent.length <= MITIGATION_CONTENT_MAX_LENGTH) {
+    return {
+      contents: [content],
+      propertyConsumed: true,
+      warning: `TMT threat ${threat.id}: its Possible Mitigation(s) text does not match the knowledge-base default, so it was imported as one mitigation as written`,
+    };
+  }
+  return {
+    contents: [],
+    propertyConsumed: false,
+    warning: `TMT threat ${threat.id}: its Possible Mitigation(s) text is over the ${MITIGATION_CONTENT_MAX_LENGTH}-character mitigation limit, so it was kept as threat metadata instead of a mitigation`,
+  };
+};
+
+const buildThreatMetadata = (
+  threat: TmtThreat,
+  model: TmtModel,
+  category: string | undefined,
+  possibleMitigationsImported: boolean,
+): MetadataEntry[] => {
   const metadata: MetadataEntry[] = [];
   const usedKeys = new Set<string>();
   const add = (key: string, value: string | string[] | undefined) => {
@@ -212,7 +281,7 @@ const buildThreatMetadata = (threat: TmtThreat, model: TmtModel, category: strin
   // Preserve every other non-empty property as custom:TMT <label> (KB label, else raw name);
   // on collision with an existing key, fall back to the raw property name to stay unique.
   for (const [name, value] of Object.entries(threat.properties)) {
-    if (CONSUMED_PROPERTIES.has(name) || !value) {
+    if (CONSUMED_PROPERTIES.has(name) || (possibleMitigationsImported && name === POSSIBLE_MITIGATIONS_PROPERTY) || !value) {
       continue;
     }
     const labelKey = `custom:TMT ${model.knowledgeBase.propertyLabels[name] ?? name}`;
@@ -248,6 +317,7 @@ export const convertTmtThreats = (model: TmtModel): TmtThreatConversionResult =>
   const warnings: string[] = [];
   const unconvertible: TmtUnconvertibleThreat[] = [];
   const threats: TemplateThreatStatement[] = [];
+  const mitigationsByThreat: TmtThreatMitigations[] = [];
   const usedNumericIds = new Set<number>();
   let nextAllocatedId = model.threats.reduce((max, threat) => Math.max(max, threat.id), 0) + 1;
 
@@ -294,7 +364,12 @@ export const convertTmtThreats = (model: TmtModel): TmtThreatConversionResult =>
       threatWarnings.push(`TMT category '${category}' for threat ${threat.id} is not a STRIDE letter; STRIDE omitted`);
     }
 
-    const metadata = buildThreatMetadata(threat, model, category);
+    const threatMitigations = selectThreatMitigations(threat, composed.curated);
+    if (threatMitigations.warning) {
+      threatWarnings.push(threatMitigations.warning);
+    }
+
+    const metadata = buildThreatMetadata(threat, model, category, threatMitigations.propertyConsumed);
     const metadataLimitError = getMetadataLimitError(metadata);
     if (metadataLimitError) {
       unconvertible.push({ id: threat.id, reason: metadataLimitError });
@@ -333,7 +408,10 @@ export const convertTmtThreats = (model: TmtModel): TmtThreatConversionResult =>
     usedNumericIds.add(numericId);
     threats.push(candidate);
     warnings.push(...threatWarnings);
+    if (threatMitigations.contents.length > 0) {
+      mitigationsByThreat.push({ threatId: candidate.id, contents: threatMitigations.contents });
+    }
   }
 
-  return { threats, unconvertible, warnings };
+  return { threats, unconvertible, warnings, mitigationsByThreat };
 };

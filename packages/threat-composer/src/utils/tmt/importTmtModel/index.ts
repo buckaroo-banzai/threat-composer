@@ -15,6 +15,7 @@
  ******************************************************************************************************************** */
 import { CURRENT_SCHEMA_VERSION } from '../../../configs';
 import { DataExchangeFormat } from '../../../customTypes';
+import { buildTmtMitigations } from '../buildTmtMitigations';
 import { convertTmtThreats, TmtUnconvertibleThreat } from '../convertTmtThreats';
 import { extractTmtReportDiagrams } from '../extractTmtReportDiagrams';
 import { formatTmtModelData } from '../formatTmtModelData';
@@ -39,7 +40,8 @@ const fileNameWithoutExtension = (fileName?: string): string => (fileName ?? '')
 export const importTmtModel = (tm7Xml: string, reportHtml: string, fileName?: string): TmtImportResult => {
   const model = parseTmtModel(tm7Xml);
   const diagrams = extractTmtReportDiagrams(reportHtml, model.surfaces);
-  const { threats, unconvertible, warnings } = convertTmtThreats(model);
+  const { threats, unconvertible, warnings, mitigationsByThreat } = convertTmtThreats(model);
+  const { mitigations, mitigationLinks } = buildTmtMitigations(mitigationsByThreat);
   const description = formatTmtModelData(model);
 
   const workspaceName =
@@ -59,6 +61,8 @@ export const importTmtModel = (tm7Xml: string, reportHtml: string, fileName?: st
       })),
     },
     threats,
+    mitigations,
+    mitigationLinks,
   };
 
   return { workspaceName, data, unconvertible, warnings };

@@ -16,7 +16,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { convertTmtThreats } from '.';
-import { TemplateThreatStatement } from '../../../customTypes';
+import { MitigationSchema, TemplateThreatStatement } from '../../../customTypes';
+import sanitizeHtml from '../../sanitizeHtml';
 import { parseTmtModel } from '../parseTmtModel';
 import { TMT_TEMPLATE_MAPPINGS } from '../templateMappings';
 import { TmtModel, TmtThreat } from '../tmtModel';
@@ -370,5 +371,132 @@ describe('convertTmtThreats - numeric id policy', () => {
     expect(threats[1].numericId).not.toBe(5);
     expect(meta(threats[1], 'custom:TMT Threat ID')).toBe('5'); // original id preserved
     expect(warnings.join(' ')).toContain('Duplicate TMT threat id 5');
+  });
+});
+
+describe('convertTmtThreats - mitigations', () => {
+  const names = { source: 'Web App', target: 'Orders DB', flow: 'HTTPS' };
+  const elementModel = (threat: TmtThreat) =>
+    makeModel({ elementNames: { s: names.source, t: names.target, f: names.flow }, threats: [{ ...threat, sourceGuid: 's', targetGuid: 't', flowGuid: 'f' }] });
+  const formatted = (mapping: ReturnType<typeof mappingFor>) =>
+    mapping.mitigations.map((m) => (m.references?.length ? `${m.content} Refer: ${m.references.join(' ')}` : m.content));
+  const azure = TMT_TEMPLATE_MAPPINGS.find((m) => m.possibleMitigations && m.mitigations.some((x) => x.references?.length === 2))!;
+  const defaultKb = TMT_TEMPLATE_MAPPINGS.find((m) => !m.possibleMitigations && m.mitigations.length > 0)!;
+  const azureThreat = (properties: Record<string, string>) => makeThreat({
+    typeId: azure.id,
+    properties: { Title: fill(azure.title, names), UserThreatDescription: fill(azure.template, names), ...properties },
+  });
+  const editedWarning = 'TMT threat 1: its Possible Mitigation(s) text does not match the knowledge-base default, so it was imported as one mitigation as written';
+
+  test('every curated mitigation passes the mitigation content schema once sanitized', () => {
+    const invalid = TMT_TEMPLATE_MAPPINGS.flatMap(formatted)
+      .filter((content) => !MitigationSchema.shape.content.safeParse(sanitizeHtml(content)).success);
+    expect(invalid).toEqual([]);
+  });
+
+  test('uses the curated mitigations when the Possible Mitigation(s) text is the knowledge-base default', () => {
+    const model = elementModel(azureThreat({ PossibleMitigations: azure.possibleMitigations! }));
+    const { threats, warnings, mitigationsByThreat } = convertTmtThreats(model);
+    expect(warnings).toEqual([]);
+    expect(mitigationsByThreat).toEqual([{ threatId: threats[0].id, contents: formatted(azure) }]);
+    expect(meta(threats[0], 'custom:TMT PossibleMitigations')).toBeUndefined();
+  });
+
+  test('uses the curated mitigations even when the description was edited', () => {
+    const { threats, warnings, mitigationsByThreat } = convertTmtThreats(elementModel(azureThreat({
+      UserThreatDescription: 'Edited description.', PossibleMitigations: azure.possibleMitigations!,
+    })));
+    expect(threats[0].threatAction).toBe('Edited description.');
+    expect(warnings).toEqual(['TMT threat 1: no curated template mapping matched its title and description, so its statement is the TMT description as written']);
+    expect(mitigationsByThreat).toEqual([{ threatId: threats[0].id, contents: formatted(azure) }]);
+  });
+
+  test('imports an edited Possible Mitigation(s) text as one mitigation, with links as plain URLs, and warns', () => {
+    const edited = 'Use MFA. Refer: <a href="https://example.com/mfa">https://example.com/mfa</a>';
+    const { threats, warnings, mitigationsByThreat } = convertTmtThreats(elementModel(azureThreat({ PossibleMitigations: edited })));
+    expect(mitigationsByThreat).toEqual([{ threatId: threats[0].id, contents: ['Use MFA. Refer: https://example.com/mfa'] }]);
+    expect(warnings).toEqual([editedWarning]);
+    expect(meta(threats[0], 'custom:TMT PossibleMitigations')).toBeUndefined();
+  });
+
+  test('keeps both the link text and the URL when they differ', () => {
+    const edited = 'See <a href="https://example.com/guide">the guide</a>.';
+    const { mitigationsByThreat } = convertTmtThreats(elementModel(azureThreat({ PossibleMitigations: edited })));
+    expect(mitigationsByThreat[0].contents).toEqual(['See the guide (https://example.com/guide).']);
+  });
+
+  // Covers the bug where a data-href attribute was read as the link's URL.
+  test.each([
+    ['<a data-href="https://evil.example" href="https://good.example">Docs</a>', 'Docs (https://good.example)'],
+    ['<a data-href="https://evil.example">Docs</a>', 'Docs'],
+  ])('ignores data-href when reading a link URL: %s', (edited, expected) => {
+    const { mitigationsByThreat } = convertTmtThreats(elementModel(azureThreat({ PossibleMitigations: edited })));
+    expect(mitigationsByThreat[0].contents).toEqual([expected]);
+  });
+
+  // Covers the bug where a single-quoted or unquoted href was dropped, losing the URL.
+  test.each([
+    ["<a href='https://example.com/guide'>the guide</a>"],
+    ['<a href=https://example.com/guide>the guide</a>'],
+  ])('keeps the URL of a single-quoted or unquoted href: %s', (edited) => {
+    const { mitigationsByThreat } = convertTmtThreats(elementModel(azureThreat({ PossibleMitigations: edited })));
+    expect(mitigationsByThreat[0].contents).toEqual(['the guide (https://example.com/guide)']);
+  });
+
+  test('treats a Possible Mitigation(s) text on a threat type with no curated mapping as edited', () => {
+    const { threats, warnings, mitigationsByThreat } = convertTmtThreats(makeModel({
+      threats: [makeThreat({ typeId: 'UNKNOWN', properties: { Title: 'Custom threat', PossibleMitigations: 'Patch it.' } })],
+    }));
+    expect(mitigationsByThreat).toEqual([{ threatId: threats[0].id, contents: ['Patch it.'] }]);
+    expect(warnings).toContain(editedWarning);
+  });
+
+  test('keeps an over-long edited text as custom metadata instead of a mitigation, and warns', () => {
+    const edited = 'x'.repeat(1001);
+    const { threats, warnings, mitigationsByThreat } = convertTmtThreats(elementModel(azureThreat({ PossibleMitigations: edited })));
+    expect(mitigationsByThreat).toEqual([]);
+    expect(meta(threats[0], 'custom:TMT PossibleMitigations')).toBe(edited);
+    expect(warnings).toEqual(['TMT threat 1: its Possible Mitigation(s) text is over the 1000-character mitigation limit, so it was kept as threat metadata instead of a mitigation']);
+  });
+
+  test('measures an edited text after HTML encoding, so ampersands near the limit count in full', () => {
+    const { mitigationsByThreat, warnings } = convertTmtThreats(elementModel(azureThreat({ PossibleMitigations: '&'.repeat(201) })));
+    expect(mitigationsByThreat).toEqual([]);
+    expect(warnings[0]).toContain('over the 1000-character mitigation limit');
+  });
+
+  test('keeps a text over the 4000-character source limit as metadata without flattening its links, and warns', () => {
+    const edited = '<a href="'.repeat(445);
+    const { threats, warnings, mitigationsByThreat } = convertTmtThreats(elementModel(azureThreat({ PossibleMitigations: edited })));
+    expect(mitigationsByThreat).toEqual([]);
+    expect(meta(threats[0], 'custom:TMT PossibleMitigations')).toBe(edited);
+    expect(warnings).toEqual(['TMT threat 1: its Possible Mitigation(s) text is over the 1000-character mitigation limit, so it was kept as threat metadata instead of a mitigation']);
+  });
+
+  // Covers the bug where an edited text made only of HTML was imported as a mitigation that is empty once sanitized.
+  test('imports no mitigation for an edited text that is only HTML markup, and keeps it as metadata', () => {
+    const { threats, mitigationsByThreat } = convertTmtThreats(elementModel(azureThreat({ PossibleMitigations: '<script>x</script>' })));
+    expect(mitigationsByThreat).toEqual([]);
+    expect(meta(threats[0], 'custom:TMT PossibleMitigations')).toBe('<script>x</script>');
+  });
+
+  test('uses description-derived mitigations for a default knowledge-base type only when its title and description match', () => {
+    const matched = convertTmtThreats(elementModel(makeThreat({
+      typeId: defaultKb.id, properties: { Title: fill(defaultKb.title, names), UserThreatDescription: fill(defaultKb.template, names) },
+    })));
+    expect(matched.mitigationsByThreat).toEqual([{ threatId: matched.threats[0].id, contents: formatted(defaultKb) }]);
+
+    const edited = convertTmtThreats(elementModel(makeThreat({
+      typeId: defaultKb.id, properties: { Title: fill(defaultKb.title, names), UserThreatDescription: 'Edited description.' },
+    })));
+    expect(edited.mitigationsByThreat).toEqual([]);
+  });
+
+  test('imports no mitigations for a threat that cannot be imported', () => {
+    const { unconvertible, mitigationsByThreat } = convertTmtThreats(makeModel({
+      threats: [makeThreat({ properties: { PossibleMitigations: azure.possibleMitigations! } })],
+    }));
+    expect(unconvertible).toHaveLength(1);
+    expect(mitigationsByThreat).toEqual([]);
   });
 });

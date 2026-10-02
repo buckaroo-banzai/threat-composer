@@ -100,6 +100,29 @@ Additionally, **every other non-empty threat property** is preserved as 'custom:
 
 ---
 
+## Mitigations
+
+TMT's recommended mitigations become TC mitigations, each linked to the imported threats it applies to.
+
+| TC field | TMT source | Rule |
+| --- | --- | --- |
+| 'id' | — | new UUID v4 |
+| 'numericId' | — | 1, 2, 3, ... in order of first appearance |
+| 'content' | curated items, else the threat's 'Possible Mitigation(s)' ('PossibleMitigations') text | see Mitigation selection below |
+| 'status' | — | 'mitigationIdentified' |
+| mitigation links | — | one link per mitigation and threat pair, only to imported threats |
+
+### Mitigation selection
+
+- **Azure Knowledge Base, unedited:** when 'Possible Mitigation(s)' equals the Knowledge Base default (after trimming), the curated items from the mapping table are used. Each item's reference links are appended as "recommendation Refer: URL URL".
+- **Default Knowledge Base:** when the threat's statement came from its curated mapping (title and description unedited), the curated advice items from the description are used.
+- **Edited or unmapped text (with an import warning):** the whole 'Possible Mitigation(s)' text becomes one mitigation. HTML links are first flattened to their text, followed by the URL in parentheses when it differs from the text, so the URL survives sanitizing.
+- **Kept as threat metadata instead (with an import warning):** text with nothing left once HTML is removed, or over 1,000 characters after HTML encoding. Text over 4,000 characters is kept as metadata without flattening its links.
+- Identical mitigations are imported once; texts are compared after removing HTML and collapsing whitespace.
+- 'Possible Mitigation(s)' is left out of the threat's 'custom:TMT' metadata only when it became mitigations; otherwise it is preserved as 'custom:TMT Possible Mitigation(s)'.
+
+---
+
 ## Data Flow diagrams
 
 Each non-empty TMT drawing surface becomes a named TC Data Flow diagram. The diagram image is taken from the matching TMT Full Report entry (by order, with name as a cross-check), not rendered from '.tm7' geometry. Empty surfaces are reported as a warning (the Full Report omits them).

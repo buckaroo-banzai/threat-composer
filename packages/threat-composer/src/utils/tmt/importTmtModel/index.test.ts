@@ -17,6 +17,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { importTmtModel } from '.';
 import { DataExchangeFormatSchema } from '../../../customTypes';
+import parseImportedData from '../../parseImportedData';
 
 const fixture = (name: string) => readFileSync(join(__dirname, '../__fixtures__', name), 'utf-8');
 
@@ -62,6 +63,45 @@ describe('importTmtModel - real fixtures', () => {
       'Sample_Threat_Model.tm7',
     );
     expect(() => DataExchangeFormatSchema.parse(result.data)).not.toThrow();
+  });
+
+  test.each([
+    ['ContosoCast Threat Model Fully Labeled with AI', 145, 114, 260],
+    ['Sample_Threat_Model', 29, 11, 15],
+  ])('imports the curated mitigations of %s, each linked to imported threats', (name, threatCount, mitigationCount, linkCount) => {
+    const result = importTmtModel(fixture(`${name}.tm7`), fixture(`${name}.htm`), `${name}.tm7`);
+    const threatIds = new Set(result.data.threats?.map((t) => t.id));
+    const mitigationIds = new Set(result.data.mitigations?.map((m) => m.id));
+    expect(result.warnings).toEqual([]);
+    expect(result.data.threats).toHaveLength(threatCount);
+    expect(result.data.mitigations).toHaveLength(mitigationCount);
+    expect(result.data.mitigationLinks).toHaveLength(linkCount);
+    expect(result.data.mitigationLinks?.every((l) => threatIds.has(l.linkedId) && mitigationIds.has(l.mitigationId))).toBe(true);
+    expect(result.data.threats?.some((t) => t.metadata?.some((m) => m.key.includes('PossibleMitigations')))).toBe(false);
+    expect(() => DataExchangeFormatSchema.parse(result.data)).not.toThrow();
+  });
+});
+
+describe('importTmtModel - hostile Possible Mitigation(s) text through the import boundary', () => {
+  const name = 'ContosoCast Threat Model Fully Labeled with AI';
+  const tm7 = fixture(`${name}.tm7`);
+  const htm = fixture(`${name}.htm`);
+  const xmlEscape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const withFirstPossibleMitigations = (text: string) =>
+    tm7.replace(/(<a:Key>PossibleMitigations<\/a:Key><a:Value>)[^<]*/, (_match, prefix: string) => prefix + xmlEscape(text));
+
+  test.each([
+    ['<a href="javascript:alert(1)">Click</a>', 'Click (javascript:alert(1))'],
+    ['<a href="data:text/html,<script>alert(1)</script>">Click</a>', 'Click'],
+    ['<a href="<img src=x onerror=alert(1)">Click</a>>', 'Click ('],
+    ['<a href="https://example.com"><b>Click</b></a>', 'Click'],
+    ['<script>alert(1)</script>Use TLS', 'Use TLS'],
+  ])('stores %s as the plain text %s, and every mitigation is markup-free and within the limit', (hostile, expected) => {
+    const result = importTmtModel(withFirstPossibleMitigations(hostile), htm, `${name}.tm7`);
+    expect(result.warnings).toHaveLength(1);
+    const data = parseImportedData(result.data);
+    expect(data.mitigations?.[0]?.content).toBe(expected);
+    expect(data.mitigations?.filter((m) => m.content.includes('<') || m.content.length > 1000)).toEqual([]);
   });
 });
 
