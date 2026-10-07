@@ -17,6 +17,10 @@ module.exports = {
       module: {
         ...config.module,
         rules: config.module.rules.map((rule) => {
+          if (rule.enforce === 'pre' && String(rule.loader).includes('source-map-loader')) {
+            // ace-builds' CoffeeScript worker contains a source-map comment string that source-map-loader misreads.
+            return { ...rule, exclude: [rule.exclude, /[\\/]node_modules[\\/]ace-builds[\\/]/] };
+          }
           if (rule.oneOf instanceof Array) {
             // eslint-disable-next-line no-param-reassign
             rule.oneOf[rule.oneOf.length - 1].exclude = [
