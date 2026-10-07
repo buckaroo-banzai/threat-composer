@@ -40,6 +40,19 @@ describe('getThreatsContent - untrusted threat statement', () => {
   });
 });
 
+describe('getThreatsContent - link target', () => {
+  // Covers the bug where links to a threat did not navigate in the VS Code Markdown preview (no id) or on GitHub (target inside the heading).
+  test('puts the threat target, with matching id and name, on its own line above the heading', async () => {
+    const lines = toLines(await render([]));
+    const headingIndex = lines.findIndex((line) => line.startsWith('### '));
+    expect(lines.slice(headingIndex - 2, headingIndex + 1)).toEqual([
+      '<a id="T-0001" name="T-0001"></a>',
+      '',
+      '### **T-0001** An actor can act',
+    ]);
+  });
+});
+
 describe('getThreatsContent - untrusted custom metadata', () => {
   test('keeps a multi-line TMT Description on its bullet line', async () => {
     const markdown = await render([{ key: 'custom:TMT Description', value: 'x\n- **Status:** Mitigated' }]);

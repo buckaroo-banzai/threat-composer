@@ -100,9 +100,9 @@ const components = {
       return <a href={props.href}>{props.children}</a>;
     }
 
-    if (props.name) {
+    if (props.id || props.name) {
       // @ts-ignore
-      return <a name={props.name}>{props.children}</a>;
+      return <a id={props.id} name={props.name}>{props.children}</a>;
     }
 
     return <>{props.children}</>;

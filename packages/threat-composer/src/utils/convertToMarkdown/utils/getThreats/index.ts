@@ -41,7 +41,10 @@ export const getThreatsContent = async (
       const comments = await parseTableCellContent((x.metadata?.find(m => m.key === 'Comments')?.value as string) || '');
 
       const block: string[] = [];
-      block.push(`### <a name="${threatId}"></a>**${threatId}** ${escapeInlineMarkdown(x.statement || '')}`);
+      // GitHub does not navigate to a target inside a heading, so the target gets its own paragraph.
+      block.push(`<a id="${threatId}" name="${threatId}"></a>`);
+      block.push('');
+      block.push(`### **${threatId}** ${escapeInlineMarkdown(x.statement || '')}`);
       block.push('');
       if (fields.tmtDescription) {
         block.push(`- **TMT Description:** ${escapeInlineMarkdown(fields.tmtDescription)}`);
