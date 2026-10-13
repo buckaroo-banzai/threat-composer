@@ -19,12 +19,20 @@ import TextContent from '@cloudscape-design/components/text-content';
 import * as awsui from '@cloudscape-design/design-tokens';
 import { css } from '@emotion/react';
 import { FC, memo } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform, UrlTransform } from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import frontmatter from 'remark-frontmatter';
 import gfm from 'remark-gfm';
 
 const externalPattern = /^((https?):\/\/)/;
+
+const REGEX_DATA_IMAGE_BASE64_PREFIX = /^data:image\/[a-z+]{3,};base64,/i;
+
+// react-markdown 9+ blanks data: URLs; keep base64 <img> sources so diagrams render.
+const sanitizeUrl: UrlTransform = (url, key, node) =>
+  key === 'src' && node.tagName === 'img' && REGEX_DATA_IMAGE_BASE64_PREFIX.test(url)
+    ? url
+    : defaultUrlTransform(url);
 
 const REMARK_PLUGINS = [gfm, frontmatter];
 const RAW_HTML_PLUGINS = [rehypeRaw];
@@ -125,6 +133,7 @@ const MarkdownViewer: FC<MarkdownViewerProps> = ({
           remarkPlugins={REMARK_PLUGINS}
           rehypePlugins={allowHtml ? RAW_HTML_PLUGINS : NO_PLUGINS}
           components={components}
+          urlTransform={sanitizeUrl}
           children={children}
         />
       </TextContent>

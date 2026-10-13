@@ -16,9 +16,6 @@
 import { getAssumptionsContent } from '.';
 import { DataExchangeFormat } from '../../../../customTypes';
 
-// The real module imports ESM-only unified plugins that this Jest setup does not transform; comments are unused here.
-jest.mock('../../../parseTableCellContent', () => ({ __esModule: true, default: async (str: string) => str }));
-
 describe('getAssumptionsContent - link target', () => {
   // Covers the bug where links to an assumption did not navigate in the VS Code Markdown preview, which needs an id.
   test('gives the assumption target a matching id and name', async () => {

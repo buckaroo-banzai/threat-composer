@@ -16,9 +16,6 @@
 import { getThreatsContent } from '.';
 import { DataExchangeFormat } from '../../../../customTypes';
 
-// The real module imports ESM-only unified plugins that this Jest setup does not transform; comments are unused here.
-jest.mock('../../../parseTableCellContent', () => ({ __esModule: true, default: async (str: string) => str }));
-
 const render = (metadata: { key: string; value: string | string[] }[]) => getThreatsContent({
   schema: 1.1,
   threats: [{ id: 'id', numericId: 1, statement: 'An actor can act', metadata }],

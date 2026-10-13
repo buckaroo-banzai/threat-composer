@@ -13,19 +13,18 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
+import { act } from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
 import WindowExporter from '.';
 import { DataExchangeFormat } from '../../../customTypes';
 
 // Holds the loaded threats in React state, so each render returns a new getWorkspaceData, as the real hook does.
-jest.mock('../../../hooks/useExportImport', () => {
-  const { useState } = jest.requireActual('react');
+vi.mock('../../../hooks/useExportImport', async () => {
+  const { useState } = await vi.importActual<typeof import('react')>('react');
   return {
-    __esModule: true,
     PLACEHOLDER_EXCHANGE_DATA: { schema: 1.1 },
     default: () => {
-      const [threats, setThreats] = useState([]);
+      const [threats, setThreats] = useState<DataExchangeFormat['threats']>([]);
       return {
         getWorkspaceData: () => ({ schema: 1.1, threats }),
         parseImportedData: (data: DataExchangeFormat) => ({ ...data, schema: 1.1 }),
@@ -35,11 +34,11 @@ jest.mock('../../../hooks/useExportImport', () => {
   };
 });
 
-jest.mock('../../../contexts', () => ({
+vi.mock('../../../contexts', () => ({
   useWorkspacesContext: () => ({ currentWorkspace: null, workspaceList: [] }),
 }));
 
-jest.mock('../../../contexts/MigrationConsentContext', () => ({
+vi.mock('../../../contexts/MigrationConsentContext', () => ({
   useMigrationConsentContext: () => ({
     pendingMigration: null,
     setPendingMigration: () => {},
@@ -47,9 +46,9 @@ jest.mock('../../../contexts/MigrationConsentContext', () => ({
   }),
 }));
 
-jest.mock('../../../hooks/useRemoveData', () => () => ({ deleteWorkspace: () => {} }));
+vi.mock('../../../hooks/useRemoveData', () => ({ default: () => ({ deleteWorkspace: () => {} }) }));
 
-jest.mock('../../../utils/convertToMarkdown', () => () => '');
+vi.mock('../../../utils/convertToMarkdown', () => ({ default: () => '' }));
 
 const schema10Document = {
   schema: 1.0,

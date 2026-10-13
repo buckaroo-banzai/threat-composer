@@ -18,9 +18,7 @@ import { DataExchangeFormat } from '@aws/threat-composer';
 // Mock the docx leaf constructors so we can inspect the emitted structure directly, and stub the
 // two async helpers so this test isolates getDataflow's own multi-diagram control flow:
 // every diagram, in order, under its own name, with its description then image.
-// Plain functions (not jest.fn) are used deliberately: Create React App enables Jest's
-// `resetMocks`, which would otherwise strip a jest.fn's mockImplementation before each test.
-jest.mock('docx', () => {
+vi.mock('docx', () => {
   function Paragraph(this: unknown, options: Record<string, unknown>) {
     return { __type: 'Paragraph', ...options };
   }
@@ -28,18 +26,15 @@ jest.mock('docx', () => {
     return { __type: 'TextRun', text };
   }
   return {
-    __esModule: true,
     HeadingLevel: { HEADING_1: 'HEADING_1', HEADING_2: 'HEADING_2' },
     Paragraph,
     TextRun,
   };
 });
-jest.mock('./getImage', () => ({
-  __esModule: true,
+vi.mock('./getImage', () => ({
   default: async (url: string) => ({ __type: 'Img', url }),
 }));
-jest.mock('./convertMarkdown', () => ({
-  __esModule: true,
+vi.mock('./convertMarkdown', () => ({
   default: async (content: string) => [{ __type: 'Md', content }],
 }));
 

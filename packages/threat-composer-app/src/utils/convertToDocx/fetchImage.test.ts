@@ -29,7 +29,7 @@ describe('fetchImage', () => {
   });
 
   it('requests images with redirect: "error" so a public->internal redirect cannot be followed', async () => {
-    const fetchMock = jest.fn(async () => ({
+    const fetchMock = vi.fn(async () => ({
       arrayBuffer: async () => new ArrayBuffer(8),
       headers: { get: () => 'image/png' },
     }));
