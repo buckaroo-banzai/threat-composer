@@ -82,22 +82,23 @@ Statuses apply to both user stories and their development tasks. A user story is
 
 ### US-3 — A maintainer evolves the data schema with small, single-step migrations
 
-**Status:** 'In Development'
+**Status:** 'Completed' (2026-10-14: US-3-T1 and US-3-T4 are Completed; US-3-T2, US-3-T3, and US-3-T5 were dropped under YAGNI. The browser-workspace limitation below remains.)
 
-**Story:** As a Threat Composer maintainer, I can add a schema migration as one small, explicit, single-step function, so that evolving the data model does not require bespoke structural detection or risk partial, one-off migrations.
+**Story:** As a Threat Composer maintainer, I can add a schema migration as one small, explicit, single-step function, so that evolving the data model does not need one-off migration code at each entry point.
 
-**Business value:** Removes accumulating migration debt. The original design did not account for schema evolution or migration; each ad-hoc migration (US-1) perpetuates that gap. This foundation makes every future migration a small, testable step and retires structural sniffing. It is refactoring surfaced by — and paid for alongside — the migration work, not speculative gold-plating.
+**Business value:** Removes accumulating migration debt. The original design did not account for schema evolution or migration; each ad-hoc migration (US-1) perpetuates that gap. This foundation makes every future migration a small, testable step.
 
 **Boundary:**
 
-- In scope: an explicit per-workspace schema marker; a single-step migration registry ('vN' → 'vN+1') behind one 'migrateToCurrentSchema' entry point shared by persistence-load, file-import, and IDE injection; validate-after-migrate; migrators that are pure, total, and deterministic; monotonic-integer (or semver) versioning to retire float versions like '1.1'; read-migrate-in-memory with consent-gated persistence for irreversible bumps; golden per-version fixtures plus a coverage test that every declared version resolves cleanly to current.
-- Sequenced but deferred: collapsing the fragmented per-slice 'localStorage' (one key per context) into a single versioned workspace document/manifest. This is the highest-leverage structural change (it makes migrations atomic and detection trivial) but touches every context provider, so it is its own task after the registry exists.
+- In scope: a single-step migration registry ('vN' → 'vN+1') behind one 'migrateToCurrentSchema' entry point; validate-after-migrate; migrators that are pure, total, and deterministic; read-migrate-in-memory with consent-gated persistence for irreversible bumps; a real sample file for every supported schema version plus a coverage test that each migrates cleanly to current.
+- Out of scope (dropped 2026-10-14 under YAGNI; see US-3-T2, US-3-T3, and US-3-T5): a per-workspace schema marker, integer or semver versioning, and a single versioned workspace document.
+- Known limitation: workspaces saved in the browser do not migrate through 'migrateToCurrentSchema'. 'DataflowMigrationGate' detects legacy data by its shape and migrates only the data-flow section, which is sufficient for the only migration so far (1.0 → 1.1, which changes only the data-flow section).
 
 **Acceptance criteria:**
 
-- Detection reads the explicit marker; structural detection survives only as a transitional 'absent-marker ⇒ oldest-known-version' fallback.
-- Adding a new schema version requires only a new coexisting version schema, one registered 'vN' → 'vN+1' migrator, and fixtures — no edits to detection logic or call sites.
-- All entry points (persistence-load, file-import, IDE injection) migrate through the single shared 'migrateToCurrentSchema'.
+- Adding a new schema version for file import, IDE injection, and the bundled examples requires only a new coexisting version schema, one registered 'vN' → 'vN+1' migrator, and a real sample file of the previous version — no call-site changes.
+- File import, IDE injection, and the bundled examples migrate through the single shared 'migrateToCurrentSchema'.
+- Every supported schema version has a real sample file that migrates to the current version and passes validation, enforced by a test that fails when a supported version has no sample file.
 - Irreversible persistence of a migrated model stays consent-gated with a backup offer (no silent alteration of a user's stored model).
 
 **Development tasks:**
@@ -105,10 +106,10 @@ Statuses apply to both user stories and their development tasks. A user story is
 | ID | Task | Status |
 | --- | --- | --- |
 | US-3-T1 | Introduce the single-step migration registry and one 'migrateToCurrent' entry point; route the existing '1.0' → '1.1' migrator (US-1-T1) through it; unit tests. Done: 'SCHEMA_MIGRATIONS' registry + 'migrateToCurrent' in 'utils/migrateDataExchange'; 'migrateDataExchange' (used by the import path) now delegates to it; 'SUPPORTED_SCHEMA_VERSIONS' derives from the registry; the field-level 'migrateDataflowInfo' is the single shared transform used by both the registry step and the on-load gate. Note: the on-load gate still migrates a per-slice dataflow blob via 'migrateDataflowInfo' (not a whole-document 'migrateToCurrent') until US-3-T5 collapses per-slice persistence. 2026-10-01 (code review R2/R3): 'migrateToCurrent' and 'migrateDataExchange' were merged into one function, 'migrateToCurrentSchema', in 'utils/migrateToCurrentSchema'; its input type is 'UnmigratedDataExchangeFormat'; 'CURRENT_SCHEMA_VERSION' moved to 'configs'; and the supported-version check now lives only in the migration function. | 'Completed' |
-| US-3-T2 | Add a per-workspace schema marker (on 'Workspace.metadata'), written only on the consent-gated migration; detection prefers the marker and falls back to structural 'absent ⇒ 1.0'. | 'Backlog' |
-| US-3-T3 | Adopt monotonic-integer (or semver) versioning; keep a compatibility mapping for the existing '1.0'/'1.1' exchange-format values so older files still import. | 'Backlog' |
-| US-3-T4 | Golden per-version fixtures plus a coverage test asserting every declared version migrates cleanly to current. | 'Backlog' |
-| US-3-T5 | (Larger, sequence last) Collapse per-slice 'localStorage' persistence into a single versioned workspace document/manifest so migrations are atomic. | 'Backlog' |
+| US-3-T2 | Add a per-workspace schema marker (on 'Workspace.metadata'), written only on the consent-gated migration; detection prefers the marker and falls back to structural 'absent ⇒ 1.0'. | 'Dropped' (2026-10-14, YAGNI: shape-based detection works for the only migration. Revisit if a future migration of saved workspaces cannot be detected from the data's shape.) |
+| US-3-T3 | Adopt monotonic-integer (or semver) versioning; keep a compatibility mapping for the existing '1.0'/'1.1' exchange-format values so older files still import. | 'Dropped' (2026-10-14, YAGNI: decimal versions only become ambiguous after 1.9, and the exchange-format version numbering belongs to upstream, which is still on schema 1.0. Raise it when proposing schema 1.1 upstream.) |
+| US-3-T4 | Golden per-version fixtures plus a coverage test asserting every declared version migrates cleanly to current. | 'Completed' (2026-10-14: the test pairs each supported schema version with a real sample file — 1.0: the bundled 'ThreatComposer.tc.json'; 1.1: 'src/utils/migrateToCurrentSchema/__fixtures__/schema-1.1.tc.json', a file saved by Threat Composer during US-1 IDE testing, with its diagram images replaced by a generated "Test Image" PNG. It fails if a supported version has no sample file, and checks that each sample migrates to the current schema and passes validation. 'SUPPORTED_SCHEMA_VERSIONS' is now exported for it.) |
+| US-3-T5 | (Larger, sequence last) Collapse per-slice 'localStorage' persistence into a single versioned workspace document/manifest so migrations are atomic. | 'Dropped' (2026-10-14, YAGNI: a rewrite of upstream's storage design, with a data-migration risk for every saved workspace and no value for the TMT import. If wanted, propose it upstream.) |
 
 ### US-4 — A user imports a Microsoft TMT '.tm7' model into Threat Composer
 
@@ -193,6 +194,8 @@ Incident (2026-09-29): after an IDE restart, 'convertTmtThreats' and its test ha
 ## Schema Migration Architecture (Target State)
 
 This is the design we would build from scratch for clean, reliable versioned migrations. US-1 delivers user value now; US-3 refactors toward this target. New migration code should move toward these principles rather than perpetuate unversioned, in-place handling.
+
+Update 2026-10-14: under YAGNI, US-3 no longer builds principle 1 (single versioned document), principle 3 (integer or semver versions), or the explicit marker in principle 4; see US-3-T2, US-3-T3, and US-3-T5. The list is kept as reference for if a real need appears.
 
 1. **One versioned envelope per document.** Persist a workspace as a single document carrying an explicit 'schemaVersion' at a known path, not as today's many unversioned per-context 'localStorage' slices. Version lives in exactly one place; detection is a field read, never structural sniffing; migration is one atomic read-modify-write instead of N racy per-slice writes.
 2. **Single-step migration registry.** A registry of pure functions, each doing exactly one step 'vN' → 'vN+1', composed to walk any old version up to current. Never jump versions; single-step keeps each migration small, testable, and reviewable.

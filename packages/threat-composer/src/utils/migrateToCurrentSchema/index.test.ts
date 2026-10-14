@@ -13,10 +13,12 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  ******************************************************************************************************************** */
-import migrateToCurrentSchema, { DEFAULT_DATAFLOW_DIAGRAM_NAME, dataExchangeNeedsMigration, dataflowInfoNeedsMigration, migrateDataflowInfo } from '.';
+import migrateToCurrentSchema, { DEFAULT_DATAFLOW_DIAGRAM_NAME, SUPPORTED_SCHEMA_VERSIONS, dataExchangeNeedsMigration, dataflowInfoNeedsMigration, migrateDataflowInfo } from '.';
+import { CURRENT_SCHEMA_VERSION } from '../../configs';
 import { DataExchangeFormat, DataflowInfo } from '../../customTypes';
 import threatComposer from '../../data/workspaceExamples/ThreatComposer.tc.json';
 import validateData from '../validateData';
+import schema1_1Sample from './__fixtures__/schema-1.1.tc.json';
 
 const SAMPLE_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HBSdAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
@@ -203,5 +205,27 @@ describe('dataExchangeNeedsMigration - ingestion consent gate', () => {
 
   test('does not flag input without a numeric schema', () => {
     expect(dataExchangeNeedsMigration({})).toBe(false);
+  });
+});
+
+describe('migrateToCurrentSchema - a real sample file for every supported version', () => {
+  // Real files saved by Threat Composer, one per supported schema version.
+  const SAMPLE_FILES = new Map<number, unknown>([
+    [1.0, threatComposer],
+    [1.1, schema1_1Sample],
+  ]);
+
+  test('every supported schema version has a sample file', () => {
+    const byNumber = (a: number, b: number) => a - b;
+    expect([...SAMPLE_FILES.keys()].sort(byNumber)).toEqual([...SUPPORTED_SCHEMA_VERSIONS].sort(byNumber));
+  });
+
+  test.each([...SAMPLE_FILES])('the schema %s sample migrates to the current schema and passes validation', (version, sample) => {
+    expect((sample as { schema: number }).schema).toBe(version);
+
+    const result = migrateToCurrentSchema(sample as DataExchangeFormat);
+
+    expect(result.schema).toBe(CURRENT_SCHEMA_VERSION);
+    expect(validateData(result).success).toBe(true);
   });
 });

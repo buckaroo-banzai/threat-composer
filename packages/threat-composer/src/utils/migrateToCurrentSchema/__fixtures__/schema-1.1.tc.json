@@ -1,0 +1,53 @@
+{
+  "schema": 1.1,
+  "applicationInfo": {
+    "name": "IDE Sanity Check (schema 1.0)",
+    "description": "A schema 1.0 threat model used to verify the AWS Toolkit Threat Composer editor and, later, the 1.0 to 1.1 migration consent gate."
+  },
+  "architecture": {
+    "description": "Architecture description for the IDE sanity check.",
+    "image": ""
+  },
+  "dataflow": {
+    "diagrams": [
+      {
+        "id": "dbc97226-33ee-4c8f-86a3-07cd15aa267f",
+        "name": "Diagram 1",
+        "image": "data:image/png;base64,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",
+        "description": "Legacy single data-flow narrative. Under schema 1.0 this lives at dataflow.description with a single dataflow.image."
+      },
+      {
+        "id": "bcdcb634-9d15-4b89-a318-8ecd65349a85",
+        "name": "Diagram 2",
+        "image": "data:image/png;base64,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",
+        "description": ""
+      }
+    ]
+  },
+  "assumptions": [],
+  "mitigations": [],
+  "assumptionLinks": [],
+  "mitigationLinks": [],
+  "threats": [
+    {
+      "id": "dbeaa6d1-ccb3-48a9-9e06-30012c81f78b",
+      "numericId": 1,
+      "displayOrder": 1,
+      "status": "threatIdentified",
+      "statement": "An external threat actor who is in a person-in-the-middle position can access sensitive data that was not excluded or redacted, which leads to the actor being able to do anything the user can do, negatively impacting vehicle listing",
+      "threatSource": "external threat actor",
+      "prerequisites": "who is in a person-in-the-middle position",
+      "threatAction": "access sensitive data that was not excluded or redacted",
+      "threatImpact": "the actor being able to do anything the user can do",
+      "impactedAssets": [
+        "vehicle listing"
+      ],
+      "metadata": [
+        {
+          "key": "Comments",
+          "value": "test"
+        }
+      ]
+    }
+  ]
+}
