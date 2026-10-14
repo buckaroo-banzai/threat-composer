@@ -178,7 +178,7 @@ export async function workspaceAction(page: Page, item: string): Promise<void> {
  */
 export async function enterEditMode(page: Page): Promise<void> {
   const editButton = page.getByRole('button', { name: 'Edit', exact: true });
-  const confirmButton = page.getByRole('button', { name: 'Confirm' });
+  const confirmButton = page.getByRole('button', { name: 'Confirm', exact: true });
 
   // `toPass` rather than a read-then-act sequence. Any variant of
   // "is Edit visible? then click it" is racy here, because during a route change the
@@ -206,7 +206,7 @@ export async function fillApplicationInfo(
 
   await page.getByPlaceholder('Enter application name').fill(name);
   await typeIntoMarkdownEditor(page, description);
-  await page.getByRole('button', { name: 'Confirm' }).click();
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
   // Save is explicit, so returning to view mode is the signal it committed.
   await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
@@ -317,7 +317,7 @@ export async function fillDiagramInfo(
     await page.getByLabel('Image Url').fill(imageUrl);
   }
 
-  await page.getByRole('button', { name: 'Confirm' }).click();
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
 }
 

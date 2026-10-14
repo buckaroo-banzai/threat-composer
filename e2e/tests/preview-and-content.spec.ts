@@ -182,7 +182,7 @@ test.describe('diagram images', () => {
     ).toBeGreaterThan(0);
     await expect(page.getByText('Image size limit exceeded')).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Confirm' }).click();
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
     // View mode renders it under the diagram heading, and it survives a reload.
     await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
@@ -211,7 +211,7 @@ test.describe('diagram images', () => {
     await page.locator('input[type="file"]').setInputFiles(svgPath);
 
     await expect(page.locator('img[alt="Preview Diagram"]')).toBeVisible();
-    await page.getByRole('button', { name: 'Confirm' }).click();
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click();
     await expect(page.locator('img[alt="Dataflow Diagram"]')).toBeVisible();
 
     fs.rmSync(svgPath, { force: true });
@@ -259,13 +259,13 @@ test.describe('diagram images', () => {
     const pngPath = writeTempFile('clear.png', TINY_PNG);
     await page.locator('input[type="file"]').setInputFiles(pngPath);
     await expect(page.locator('img[alt="Preview Diagram"]')).toBeVisible();
-    await page.getByRole('button', { name: 'Confirm' }).click();
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click();
     await expect(page.locator('img[alt="Architecture Diagram"]')).toBeVisible();
 
     // Now remove just the image.
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await page.getByRole('radio', { name: 'No Image' }).check();
-    await page.getByRole('button', { name: 'Confirm' }).click();
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
     await expect(page.locator('img[alt="Architecture Diagram"]')).toHaveCount(0);
     await expect(
