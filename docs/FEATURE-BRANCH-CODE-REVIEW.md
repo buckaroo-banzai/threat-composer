@@ -138,7 +138,7 @@ Upstream already keeps the two exports in parallel, so this is a judgment call. 
 - Never read in production code: 'TmtReportDiagram.surfaceGuid' ([extractTmtReportDiagrams/index.ts](../packages/threat-composer/src/utils/tmt/extractTmtReportDiagrams/index.ts#L20)), 'TmtThreat.key' and 'interactionKey' ([tmtModel.ts](../packages/threat-composer/src/utils/tmt/tmtModel.ts#L39-L47)), 'TmtThreatType.description', and 'TmtModel.version'.
 - 'TmtDrawingSurface.order' is always the array index, so the sort by 'order' ([extractTmtReportDiagrams/index.ts](../packages/threat-composer/src/utils/tmt/extractTmtReportDiagrams/index.ts#L83)) changes nothing.
 
-**Suggested change:** remove any of these fields that US-4-T11 (mitigations) and US-5 do not need, and remove 'order' together with the sort. To discuss: the parser was designed as a neutral, faithful model, so you may prefer to keep some of these fields deliberately.
+**Suggested change:** remove any of these fields that US-4-T11 (mitigations) does not need, and remove 'order' together with the sort. To discuss: the parser was designed as a neutral, faithful model, so you may prefer to keep some of these fields deliberately.
 
 ### R9: Trim surface names once (Low, Verified)
 

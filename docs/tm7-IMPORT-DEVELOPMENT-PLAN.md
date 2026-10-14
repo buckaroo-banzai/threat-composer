@@ -123,7 +123,7 @@ Statuses apply to both user stories and their development tasks. A user story is
 - Two required inputs: the '.tm7' model and a TMT-generated **Full Report** HTML file for the same model. DFD images are taken from the report (TMT's own rendering); TC does not render diagrams from '.tm7' geometry.
 - In scope: namespace-aware '.tm7' v4.3 parsing for threats, model info, and surface identity/order; ingesting the Full Report HTML to extract each surface's embedded base64 PNG and match it to a '.tm7' surface by order and name; threat conversion with status/priority/category (STRIDE) mapping and all fixed plus arbitrary 'custom:TMT *' metadata; threat statements composed from a curated, human-reviewed per-template mapping of TMT knowledge-base text into TC grammar fields (US-4-T10); TMT recommended mitigations imported as linked TC mitigations (US-4-T11); the 'custom:*' threat-card and report UI; the 'Microsoft TMT Model Information' block on the Application description; transactional new-workspace creation (multi-workspace) or singleton replace-with-warning; real sanitized '.tm7' and Full Report fixtures.
 - No bespoke preview: the import creates the workspace and the user reviews and edits it in the normal TC views (rename/delete diagrams via US-1, edit descriptions and threats) before saving. There is no separate tabbed-Preview modal or migration draft.
-- Out of scope: rendering DFDs from '.tm7' geometry (we rely on TMT's Full Report); supporting-document extraction (US-5); anything listed under 'Out of Scope for the Initial Release'.
+- Out of scope: rendering DFDs from '.tm7' geometry (we rely on TMT's Full Report); anything listed under 'Out of Scope for the Initial Release'.
 
 **Acceptance criteria:**
 
@@ -190,31 +190,6 @@ Also decide whether these limits should move to configuration that can be overri
 
 Incident (2026-09-29): after an IDE restart, 'convertTmtThreats' and its test had silently reverted to their 2026-09-21 state, from before the SDL review (throw on failure, no 'unconvertible' result), apparently restored by VS Code's chat edit tracking during the IDE instability. Both were restored to the committed 'f7b3bbd' design: a structured 'unconvertible' result with the Abort/Ignore overlay, per the user's 2026-09-21 decision.
 
-### US-5 — A user brings a supporting document into a description section during import
-
-**Status:** 'Backlog'
-
-**Story:** As a Threat Composer user, I can attach one Word ('.docx'), text ('.txt'), or Markdown ('.md') document to the Application, Architecture, or Data Flow section when importing a '.tm7', and see its content imported as editable Markdown.
-
-**Business value:** Lets a reviewer carry supporting narrative context into the imported model without retyping it.
-
-**Boundary:**
-
-- In scope: the '.docx'/'.txt'/'.md' extractor contract; Mammoth-in-a-Web-Worker for '.docx' (sanitize -> Turndown/GFM -> Markdown); one optional document per section, assigned in the import modal's file-selection step; the '#### Imported from <filename>' heading convention; extraction warnings and failures surfaced at import time.
-- Out of scope: more than one document per section; embedded-image extraction; '.pdf'/'.xlsx' (see 'Out of Scope' and 'Deferred Enhancements').
-
-**Acceptance criteria:**
-
-- A user optionally assigns at most one supported document per section during import; its content is imported as editable Markdown under '#### Imported from <filename>', never silently truncated.
-- A document that cannot be extracted blocks import until the user removes or replaces it; '.docx' embedded images are omitted with a warning.
-- Extraction runs in a Worker with enforced input/output/time limits and is cancellable.
-
-**Development tasks:** to be broken out when US-5 is started. Depends on US-4.
-
-| ID | Task | Status |
-| --- | --- | --- |
-| US-5-T1 | Add the maintainer-supplied ContosoCast supporting document (Word '.docx', convertible to Markdown) as an extraction fixture; it carries narrative assets/threats/mitigations/security-assumptions text to be imported verbatim as editable Markdown into a description section (not parsed into entities). | 'Backlog' |
-
 ## Schema Migration Architecture (Target State)
 
 This is the design we would build from scratch for clean, reliable versioned migrations. US-1 delivers user value now; US-3 refactors toward this target. New migration code should move toward these principles rather than perpetuate unversioned, in-place handling.
@@ -238,18 +213,13 @@ The initial release will:
 - Use the DFD images from a TMT-generated Full Report (TMT's own rendering) rather than recreating diagrams from '.tm7' geometry.
 - Add general support for multiple named DFDs in a TC workspace.
 - Import every TMT threat and its disposition, with TMT's recommended mitigations as linked TC mitigations.
-- Optionally extract one supporting document into each existing TC description section: Application, Architecture, and Data Flow.
 - In multi-workspace mode, create and populate a new workspace without modifying the active workspace if migration fails.
 - In singleton modes, replace the singleton model only after an explicit overwrite warning and successful validation.
 - Continue to store workspace data in browser 'localStorage'.
 
 ## Out of Scope for the Initial Release
 
-- PDF import, including OCR.
-- Excel '.xlsx' or legacy '.xls' import.
-- Legacy Word '.doc' import.
-- Supporting more than one document per TC description section.
-- Repeatable or reorderable context-document fields in TC.
+- Importing supporting documents (such as Word, text, or Markdown files) into description sections. Cancelled 2026-10-13: the effort to implement this is too large to include it without verifying strong demand for the feature from end users.
 - Multiple Architecture diagrams.
 - Diagram-to-threat linking, diagram-based threat filtering, or graphical threat highlighting.
 - Converting TMT model-level assumptions into TC assumption entities.
@@ -303,8 +273,7 @@ The initial release will:
 - The flow is:
   1. Select one required '.tm7' file.
   2. Select the matching required **Full Report HTML** file. (The browser sandbox cannot read a sibling file automatically, so both are selected explicitly; IDE-host auto-discovery of a co-located report is deferred.)
-  3. Optionally select and assign one supporting document to each of Application, Architecture, and Data Flow.
-  4. Select Import to create the new workspace, then review the model in the normal TC views, adjust it with the existing tools (rename/delete diagrams, edit descriptions and threats), and save.
+  3. Select Import to create the new workspace, then review the model in the normal TC views, adjust it with the existing tools (rename/delete diagrams, edit descriptions and threats), and save.
 - Blocking errors and non-blocking warnings surface at import time (see 'Error and Warning Policy'); there is no separate tabbed-Preview modal or migration draft.
 
 ### Workspace and Application Naming
@@ -317,22 +286,6 @@ The initial release will:
 - In standard multi-workspace mode, Microsoft TMT import creates a new workspace and never replaces the active workspace.
 - In singleton modes, Microsoft TMT import replaces the current singleton model after warning the user explicitly that its existing content will be overwritten.
 - Retain the existing opportunity to export the current model as a backup before confirming a singleton overwrite.
-
-### Supporting Documents
-
-- Initial supported formats are '.docx', '.txt', and '.md'.
-- A user may optionally assign at most one document to each existing TC description section:
-  - Application
-  - Architecture
-  - Data Flow
-- Extracted content is converted to Markdown and is editable after import in the normal description editors.
-- Prefix extracted content in every destination with '#### Imported from <filename>', preserving the original filename. The heading remains editable with the extracted content after import.
-- Documents are never silently truncated.
-- A selected document that cannot be extracted blocks import until the user removes or replaces it.
-- '.docx' extraction preserves semantic headings, paragraphs, lists, tables, links, and image alt text where available.
-- Embedded '.docx' images are omitted and reported as import warnings.
-- '.txt' is converted to escaped Markdown paragraphs.
-- '.md' remains Markdown after validation and sanitization.
 
 ### Data Flow Diagrams
 
@@ -436,8 +389,6 @@ Add a clearly labeled **Microsoft TMT Model Information** block to the Applicati
 
 TMT's free-form assumptions remain in this block. Users may manually create individual TC assumption entities after migration if desired.
 
-If an Application supporting document is selected, its extracted Markdown follows the TMT information under '#### Imported from <filename>'.
-
 ## TC Exchange Schema 1.1
 
 ### Data Flow Shape
@@ -491,7 +442,7 @@ Code-grounded implementation notes (verified against TC source):
 
 ### Browser-Only Processing
 
-All parsing, conversion, document extraction, and persistence occur in the browser. DFD images come from the user-provided TMT Full Report, so TC renders no diagrams itself; no service or external .NET converter is required, and source content is not uploaded.
+All parsing, conversion, and persistence occur in the browser. DFD images come from the user-provided TMT Full Report, so TC renders no diagrams itself; no service or external .NET converter is required, and source content is not uploaded.
 
 ### '.tm7' Parsing
 
@@ -557,45 +508,12 @@ Extract the per-workspace key serialization behind a small storage utility so st
 
 Singleton modes use the same parser, validation, and conversion pipeline, but import replaces the singleton model rather than creating a workspace. The exact rollback mechanism for singleton replacement remains a separate design decision.
 
-### Supporting-Document Extraction
-
-Define one common extractor contract that returns Markdown plus warnings. Use one implementation per supported format.
-
-```text
-.docx -> Mammoth semantic HTML -> sanitize-html -> Turndown/GFM -> Markdown
-.txt  -> decoded and escaped plain text -> Markdown paragraphs
-.md   -> validate and sanitize -> Markdown
-```
-
-For '.docx':
-
-- Use 'mammoth' in browser mode with 'ArrayBuffer' input.
-- Disable external file access.
-- Convert to semantic HTML rather than using Mammoth's deprecated Markdown output.
-- Sanitize the generated HTML before further processing.
-- Convert sanitized HTML with 'turndown' and its GFM plugin.
-- Omit embedded images while retaining alt text where available and emit warnings.
-- Treat Mammoth errors as extraction failures and surface its warnings as import warnings.
-
-Add runtime dependencies through 'projenrc/ui-components.ts', then synthesize generated project files with Projen.
-
-Run Mammoth conversion in a dedicated Web Worker for the initial release:
-
-- Transfer the '.docx' 'ArrayBuffer' to the Worker.
-- Enforce configurable input-size, output-size, and execution-time limits.
-- Terminate the Worker on timeout or cancellation.
-- Return semantic HTML and conversion warnings to the main thread.
-- Sanitize the returned HTML and convert it to Markdown on the main thread.
-- Complete an early Phase 0 spike to verify that Mammoth bundles and executes correctly in TC's Worker environment.
-
-The '.tm7' parser and the Full Report HTML parser remain on the main thread because 'DOMParser' is not available in Web Workers. Report-image extraction is lightweight (reading embedded base64 strings), so no per-diagram worker offloading is needed.
-
 ### Input and Complexity Limits
 
 Do not guess initial fixed limits before representative models are available. During Phase 0:
 
-- Measure sanitized representative '.tm7' and '.docx' files.
-- Establish documented, configurable limits for '.tm7' file size, '.docx' file size, DFD count, elements per DFD, threat count, and extracted Markdown length.
+- Measure sanitized representative '.tm7' files.
+- Establish documented, configurable limits for '.tm7' file size, DFD count, elements per DFD, and threat count.
 - Record the selected limits and rationale alongside acceptance-fixture metadata.
 - Reject inputs exceeding a limit before the corresponding expensive processing step.
 - Include boundary tests for every selected limit.
@@ -642,7 +560,6 @@ This is separate from the Microsoft TMT Full Report, which supplies the imported
 - A non-empty '.tm7' surface with no matching Full Report image, or a surface count/name mismatch between the '.tm7' and the report.
 - Any DFD image that exceeds the per-image limit.
 - Any threat that cannot be converted without losing identity or statement content.
-- Any assigned supporting document that cannot be extracted.
 - Any schema '1.1' validation failure.
 - Any workspace persistence failure, including 'QuotaExceededError'.
 
@@ -651,8 +568,6 @@ This is separate from the Microsoft TMT Full Report, which supplies the imported
 - Missing optional TMT metadata.
 - Missing or duplicate TMT numeric threat IDs that were reassigned.
 - Custom or ambiguous TMT categories that could not be mapped to TC STRIDE metadata.
-- Omitted embedded images in a Word document.
-- Document-conversion warnings that do not prevent usable Markdown output.
 - Empty drawing surfaces that were not imported as diagrams.
 - Imported threats whose source drawing surface was empty and produced no diagram.
 - TMT content with no direct TC equivalent that was preserved in custom metadata or the TMT information block.
@@ -670,7 +585,6 @@ No in-scope source content is silently omitted, truncated, or reclassified. Thre
 - Verify and record the baseline 'pdk build' and 'pdk test' results.
 - Confirm fixture licensing and remove sensitive information before committing.
 - Measure representative input sizes and model complexity, then select and document the initial configurable limits.
-- Verify Mammoth '.docx' conversion in a dedicated Worker, including timeout, cancellation, and output-size enforcement.
 
 ### Phase 1: Schema 1.1 and General Multi-DFD Support
 
@@ -702,13 +616,10 @@ No in-scope source content is silently omitted, truncated, or reclassified. Thre
 - Add the approved per-threat custom metadata report region.
 - Add mapping, missing-field, duplicate-ID, and failure-policy tests.
 
-### Phase 4: Supporting Documents and Import Action
+### Phase 4: Import Action
 
-- Add the '.docx', '.txt', and '.md' extractor contract and implementations.
-- Add dependencies through Projen configuration.
 - Extend the existing import UI with **Import Microsoft TMT Model**.
 - Keep file selection in the existing import modal.
-- Add optional one-document assignment for Application, Architecture, and Data Flow.
 - Surface blocking errors and non-blocking warnings at import time.
 - Validate that a failed or cancelled import does not change workspace state.
 
@@ -734,7 +645,6 @@ Dropped 2026-10-07: the first four items are superseded by importing into the cu
 - Curated mapping-table tests: every entry uses only placeholders its template contains and stays within TC field limits once names are filled in; every fixture threat with unedited text matches an entry; edited text receives the fallback; mitigations are deduplicated and linked correctly.
 - Schema '1.0' to '1.1' import and local-state migration tests.
 - Multi-DFD CRUD, ordering, selection, and export tests.
-- Supporting-document success, warning, sanitization, and failure tests.
 - Transactional persistence tests, including injected write failures and 'QuotaExceededError' rollback.
 - Existing '.tc.json' import regression tests.
 
@@ -750,11 +660,6 @@ Pixel-level image comparison is unnecessary because the images are TMT's own PNG
 
 ## Deferred Enhancements
 
-- PDF text-layer extraction.
-- OCR for scanned PDFs.
-- '.xlsx' extraction with visible, non-empty sheets converted to Markdown tables.
-- Multiple supporting documents per section.
-- Repeatable named context fields.
 - Multiple Architecture diagrams.
 - Diagram-to-threat relationships and filtering.
 - Optional SVG storage if TC later supports a safe vector-image model.
