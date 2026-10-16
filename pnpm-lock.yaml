@@ -23,6 +23,7 @@ overrides:
   qs: ^6.15.2
   fast-uri: ^3.1.6
   brace-expansion@>=5: ^5.0.9
+  fast-xml-parser: '>=5.11.1'
 
 importers:
 
@@ -125,7 +126,7 @@ importers:
         specifier: 2.0.2
         version: 2.0.2
       fast-xml-parser:
-        specifier: ^5.11.1
+        specifier: '>=5.11.1'
         version: 5.11.2
       indefinite:
         specifier: 2.5.2
