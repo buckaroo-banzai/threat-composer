@@ -57,8 +57,11 @@ const APPLICATION_MARKERS = ['TCXSS-modelname', 'TCXSS-note', 'TCXSS-owner', 'TC
  * feature probe runs `new Function("")` in a try/catch, which the app's
  * `script-src 'self'` policy blocks and reports. zod then uses its non-eval
  * parser, which it must do anyway under this policy. Harmless, so not reported.
+ * The report names zod.js on the dev server and the bundle file in a production
+ * build, so any same-origin script is matched; the fixture's payloads are inline
+ * scripts and handlers, which report as 'inline', not 'eval'.
  */
-const KNOWN_CSP_VIOLATIONS = [/^script-src eval \S*\/zod\.js:\d+$/];
+const KNOWN_CSP_VIOLATIONS = [/^script-src eval http:\/\/localhost:\d+\/\S+\.js:\d+$/];
 
 declare global {
   interface Window {
