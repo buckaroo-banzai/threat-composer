@@ -113,7 +113,7 @@ Statuses apply to both user stories and their development tasks. A user story is
 
 ### US-4 — A user imports a Microsoft TMT '.tm7' model into Threat Composer
 
-**Status:** 'In Development'
+**Status:** 'Completed' (2026-10-15: all tasks are Completed or Dropped. Verified by unit and end-to-end tests, including the XSS acceptance tests, and the maintainer's acceptance review.)
 
 **Story:** As a Threat Composer user, I can import a Microsoft TMT '.tm7' file and get a new Threat Composer workspace containing every data-flow diagram (imported from the model's TMT Full Report) and every threat (correctly mapped), which I then review and edit with the normal TC tools before saving.
 
